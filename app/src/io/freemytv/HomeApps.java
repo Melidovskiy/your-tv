@@ -82,6 +82,11 @@ final class HomeApps {
      */
     private static final String[][] SHELF = {
         {"youtube", "YouTube", "com.google.android.youtube.tv", "FF0033", "play", "1"},
+        {"netflix", "Netflix", "com.netflix.ninja", "E50914", "", "1"},
+        {"prime", "Prime Video", "com.amazon.amazonvideo.livingroom", "1A98FF", "tint", "0.96"},
+        {"disney", "Disney+", "com.disney.disneyplus", "1838C8", "", "1"},
+        {"max", "Max", "com.wbd.stream", "6C3BE0", "", "1.32"},
+        {"appletv", "Apple TV", "com.apple.atve.androidtv.appletv", "B8BCC6", "", "1.1"},
         {"hdrezka", "HDrezka", "to.pda.falcofemoralis.hdrezkaapp", "2D2D2D", "", "1"},
         {"okko", "Okko", "tv.okko.androidtv", "6C3BFF", "", "1"},
         {"kinopoisk", "Кинопоиск", "ru.kinopoisk.tv", "FF6600", "", "1"},
@@ -89,6 +94,11 @@ final class HomeApps {
         {"kion", "KION", "ru.mts.mtstv", "FF0032", "", "1"},
         {"vk", "VK Видео", "com.vk.tv", "0077FF", "", "1"},
         {"rutube", "RUTUBE", "ru.rutube.app", "00E0C6", "", "1"},
+        {"hulu", "Hulu", "com.hulu.livingroomplus", "1CE783", "", "1"},
+        {"paramount", "Paramount+", "com.cbs.ott", "0064FF", "", "1"},
+        {"peacock", "Peacock", "com.peacocktv.peacockandroid", "6E55DC", "", "1"},
+        {"globoplay", "Globoplay", "com.globo.globotv", "FF5A1F", "tint", "1"},
+        {"spotify", "Spotify", "com.spotify.tv.android", "1DB954", "", "1"},
     };
     /**
      * Shelf apps opened through another app when it is installed: the YouTube tile keeps YouTube's logo but opens

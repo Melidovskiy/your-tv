@@ -5,7 +5,7 @@ import org.json.JSONObject;
 
 public final class XrayConfigTest {
     public static void main(String[] args) {
-        JSONObject c = new JSONObject(XrayConfig.build(VlessLink.parse(VlessLinkTest.LINK), 10808, true));
+        JSONObject c = new JSONObject(XrayConfig.build(ProxyLinkTest.VLESS, 10808, true));
         JSONArray in = c.getJSONArray("inbounds");
         Check.eq("tun", in.getJSONObject(0).getString("protocol"), "tun first");
         Check.eq("socks", in.getJSONObject(1).getString("protocol"), "socks");
@@ -18,7 +18,7 @@ public final class XrayConfigTest {
         Check.eq(443, server.getInt("port"), "port");
         JSONObject user = server.getJSONArray("users").getJSONObject(0);
         Check.eq("vless", out.getString("protocol"), "vless");
-        Check.eq(VlessLinkTest.UUID, user.getString("id"), "id");
+        Check.eq(ProxyLinkTest.UUID, user.getString("id"), "id");
         Check.eq("xtls-rprx-vision", user.getString("flow"), "flow");
         Check.eq("none", user.getString("encryption"), "encryption");
         JSONObject stream = out.getJSONObject("streamSettings");
@@ -33,7 +33,7 @@ public final class XrayConfigTest {
         for (int i = 0; i < outs.length(); i++) direct |= "direct".equals(outs.getJSONObject(i).getString("tag"));
         Check.yes(direct, "has a direct outbound");
         Check.yes(c.toString().contains("192.168.0.0/16"), "LAN direct");
-        JSONArray socksOnly = new JSONObject(XrayConfig.build(VlessLink.parse(VlessLinkTest.LINK), 10808, false)).getJSONArray("inbounds");
+        JSONArray socksOnly = new JSONObject(XrayConfig.build(ProxyLinkTest.VLESS, 10808, false)).getJSONArray("inbounds");
         Check.eq(1, socksOnly.length(), "without a TUN: one inbound");
         Check.eq("socks", socksOnly.getJSONObject(0).getString("protocol"), "without a TUN: socks only");
         System.out.println("PASS XrayConfigTest");

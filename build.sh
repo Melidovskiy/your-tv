@@ -69,8 +69,8 @@ final class Config {
     static final String CITY = "$(prop city '')";
     static final String TEMPERATURE = "$(prop temperature auto)";
     static final boolean DISABLE_ASSISTANT = $ASSIST;
-    /** The VPN server's vless:// link: a secret, never logged. */
-    static final String VLESS_LINK = "$(prop vless_link '')";
+    /** The VPN server's share link (vless://, vmess://, trojan://, ss://): a secret, never logged. */
+    static final String PROXY_LINK = "$(prop proxy_link "$(prop vless_link '')")";
 }
 EOF
 

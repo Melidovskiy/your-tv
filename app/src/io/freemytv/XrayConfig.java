@@ -6,8 +6,8 @@ import org.json.JSONObject;
 
 /**
  * The Xray core's config for the TV: a TUN inbound (the VPN's file descriptor, handed over by TunService) and a local
- * SOCKS inbound (for this app's own requests that must go through the server, like TMDB), out through the VLESS
- * server; local networks go direct. Pure Java + org.json (test.sh).
+ * SOCKS inbound (for this app's own requests that must go through the server, like TMDB), out through the proxy
+ * server (ProxyLink); local networks go direct. Pure Java + org.json (test.sh).
  */
 final class XrayConfig {
     private XrayConfig() {}
@@ -15,25 +15,10 @@ final class XrayConfig {
     static final String[] LOCAL_NETS = {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8"};
 
     /** `tun`: with the TUN inbound (TunService set one up); without, only the local SOCKS inbound runs. */
-    static String build(VlessLink l, int socksPort, boolean tun) {
+    static String build(String link, int socksPort, boolean tun) {
         try {
-            JSONObject user = new JSONObject().put("id", l.uuid).put("encryption", "none");
-            if (!l.flow.isEmpty()) user.put("flow", l.flow);
-            JSONObject server = new JSONObject().put("address", l.host).put("port", l.port)
-                    .put("users", new JSONArray().put(user));
-            JSONObject stream = new JSONObject().put("network", l.type).put("security", l.security);
-            if ("tls".equals(l.security)) {
-                JSONObject tls = new JSONObject().put("serverName", l.serverName());
-                if (!l.fingerprint.isEmpty()) tls.put("fingerprint", l.fingerprint);
-                if (!l.alpn.isEmpty()) tls.put("alpn", new JSONArray(l.alpn));
-                stream.put("tlsSettings", tls);
-            }
-            JSONObject proxy = new JSONObject().put("tag", "proxy").put("protocol", "vless")
-                    .put("settings", new JSONObject().put("vnext", new JSONArray().put(server)))
-                    .put("streamSettings", stream);
+            JSONObject proxy = ProxyLink.outbound(link);
 
-            // Sniffed names only steer routing; the connection keeps the IP the app resolved (rewriting it broke TLS
-            // to some Cloudflare sites, e.g. cdn.jsdelivr.net for TizenTube).
             JSONObject sniffing = new JSONObject().put("enabled", true).put("routeOnly", true)
                     .put("destOverride", new JSONArray().put("http").put("tls"));
             JSONObject tunIn = new JSONObject().put("tag", "tun").put("protocol", "tun")

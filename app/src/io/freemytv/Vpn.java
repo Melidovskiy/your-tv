@@ -29,7 +29,7 @@ final class Vpn {
 
     /** Whether config.properties has a server link. */
     static boolean configured() {
-        return !Config.VLESS_LINK.trim().isEmpty();
+        return !Config.PROXY_LINK.trim().isEmpty();
     }
 
     /** Starts the VPN in its saved mode (YouTube only unless the whole TV was chosen). */

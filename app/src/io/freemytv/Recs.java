@@ -57,8 +57,17 @@ final class Recs {
     private static final int MANHA = 0, TARDE = 1, NOITE = 2;
     static final String[] PERIOD_LABEL = {"НА УТРО", "НА ДЕНЬ", "НА ВЕЧЕР"};
     /** Service name on TMDB (part of the name, lowercase) → TV app (HomeApps key, package). */
-    /** TMDB provider name (lowercase, contained) → key and the TV app's package: the Russian services. */
+    /** TMDB provider name (lowercase, contained) → key and the TV app's package. Only installed ones count. */
     private static final String[][] SERVICES = {
+        {"netflix", "netflix", "com.netflix.ninja"},
+        {"prime video", "prime", "com.amazon.amazonvideo.livingroom"},
+        {"disney", "disney", "com.disney.disneyplus"},
+        {"hulu", "hulu", "com.hulu.livingroomplus"},
+        {"paramount", "paramount", "com.cbs.ott"},
+        {"peacock", "peacock", "com.peacocktv.peacockandroid"},
+        {"globoplay", "globoplay", "com.globo.globotv"},
+        {"max", "max", "com.wbd.stream"},
+        {"apple tv", "appletv", "com.apple.atve.androidtv.appletv"},
         {"okko", "okko", "tv.okko.androidtv"},
         {"kinopoisk", "kinopoisk", "ru.kinopoisk.tv"},
         {"wink", "wink", "ru.rt.video.app.tv"},
@@ -69,6 +78,15 @@ final class Recs {
     };
     private static final Map<String, String> SERVICE_NAME = new HashMap<>();
     static {
+        SERVICE_NAME.put("netflix", "Netflix");
+        SERVICE_NAME.put("prime", "Prime Video");
+        SERVICE_NAME.put("disney", "Disney+");
+        SERVICE_NAME.put("hulu", "Hulu");
+        SERVICE_NAME.put("paramount", "Paramount+");
+        SERVICE_NAME.put("peacock", "Peacock");
+        SERVICE_NAME.put("globoplay", "Globoplay");
+        SERVICE_NAME.put("max", "Max");
+        SERVICE_NAME.put("appletv", "Apple TV");
         SERVICE_NAME.put("okko", "Okko");
         SERVICE_NAME.put("kinopoisk", "Кинопоиск");
         SERVICE_NAME.put("wink", "Wink");
@@ -516,7 +534,8 @@ final class Recs {
     private static String[] service(String name) {
         String n = name.toLowerCase(Locale.ROOT);
         for (String[] s : SERVICES) {
-            if (n.contains(s[0])) return s;
+            // "max" alone: not inside other names (e.g. "Kinomax").
+            if (s[0].equals("max") ? n.matches(".*\\bmax\\b.*") : n.contains(s[0])) return s;
         }
         return null;
     }

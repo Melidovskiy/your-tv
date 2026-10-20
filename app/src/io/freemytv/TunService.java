@@ -24,7 +24,7 @@ import libv2ray.Libv2ray;
 
 /**
  * The VPN (main process): Android's VpnService hands a TUN to the Xray core (libv2ray), which sends it to your own
- * VLESS server. YouTube mode: only the YouTube apps (VpnRoutes) go through it; whole-TV mode: every app but this one.
+ * proxy server (ProxyLink). YouTube mode: only the YouTube apps (VpnRoutes) go through it; whole-TV mode: every app but this one.
  * The core also runs a local SOCKS port (Vpn.SOCKS_PORT) for this app's own requests. Every minute a test request
  * through the server tells whether it answers. Never logs the link or the config.
  */
@@ -83,7 +83,8 @@ public class TunService extends VpnService {
         }
         Vpn.write(this, Vpn.State.CONNECTING);
         try {
-            VlessLink link = VlessLink.parse(Config.VLESS_LINK.trim());
+            String link = Config.PROXY_LINK.trim();
+            ProxyLink.outbound(link);   // a bad link fails here, before the TUN is set up
             tun = establish();
             if (core == null) {
                 Libv2ray.initCoreEnv(getFilesDir().getAbsolutePath(), "");
