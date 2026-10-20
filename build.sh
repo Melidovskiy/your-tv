@@ -8,7 +8,8 @@ cd "$(dirname "$0")"
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 if [ -z "$SDK" ]; then
   for d in "$HOME/Library/Android/sdk" "$HOME/Android/Sdk" /opt/homebrew/share/android-commandlinetools \
-           /usr/local/share/android-commandlinetools /usr/lib/android-sdk; do
+           /usr/local/share/android-commandlinetools /usr/lib/android-sdk \
+           ${LOCALAPPDATA:+"$(cygpath -u "$LOCALAPPDATA" 2>/dev/null || echo "$LOCALAPPDATA")/Android/Sdk"}; do
     if [ -d "$d/build-tools" ]; then SDK="$d"; break; fi
   done
 fi
@@ -16,7 +17,20 @@ fi
 BT="$SDK/build-tools/$(ls "$SDK/build-tools" | sort -V | tail -1)"
 AJ="$(ls -d "$SDK"/platforms/android-*/android.jar 2>/dev/null | sort -V | tail -1 || true)"
 [ -f "${AJ:-}" ] || { echo "Android platform not found. Run: sdkmanager \"platforms;android-34\""; exit 1; }
+# d8 from build-tools 34 fails on classes compiled by much newer JDKs: on Windows, prefer a JDK 17 unpacked in
+# %LOCALAPPDATA% (a mixed C:/ path works for both bash and the .bat tools).
+if [ -z "${JAVA_HOME:-}" ] && [ -n "${LOCALAPPDATA:-}" ]; then
+  J17="$(ls -d "$(cygpath -m "$LOCALAPPDATA")"/jdk-17* 2>/dev/null | sort -V | tail -1 || true)"
+  [ -n "$J17" ] && export JAVA_HOME="$J17"
+fi
 JAVAC="${JAVA_HOME:+$JAVA_HOME/bin/}javac"
+JAR="${JAVA_HOME:+$JAVA_HOME/bin/}jar"
+# Build tools are .exe and .bat files on Windows (Git Bash): run whichever exists.
+bt() {
+  if [ -f "$BT/$1.exe" ]; then "$BT/$1.exe" "${@:2}"
+  elif [ -f "$BT/$1.bat" ]; then cmd //c "$(cygpath -w "$BT/$1.bat")" "${@:2}"
+  else "$BT/$1" "${@:2}"; fi
+}
 KEYTOOL="${JAVA_HOME:+$JAVA_HOME/bin/}keytool"
 command -v "$JAVAC" >/dev/null 2>&1 || { echo "JDK not found. Install JDK 17 and set JAVA_HOME."; exit 1; }
 
@@ -39,7 +53,6 @@ number() {
 LAT="$(number latitude 40.7128)"
 LON="$(number longitude -74.0060)"
 ASSIST=false; [ "$(prop disable_assistant false)" = "true" ] && ASSIST=true
-CRYPTO=false; [ "$(prop show_crypto true)" = "true" ] && CRYPTO=true
 
 rm -rf out && mkdir -p out/gen/io/freemytv out/classes
 cat > out/gen/io/freemytv/Config.java <<EOF
@@ -54,29 +67,40 @@ final class Config {
     static final String LATITUDE = "$LAT";
     static final String LONGITUDE = "$LON";
     static final String CITY = "$(prop city '')";
-    static final String LANGUAGE = "$(prop language auto)";
-    static final String CURRENCY = "$(prop currency USD)";
     static final String TEMPERATURE = "$(prop temperature auto)";
     static final boolean DISABLE_ASSISTANT = $ASSIST;
-    static final boolean SHOW_CRYPTO = $CRYPTO;
+    /** The VPN server's vless:// link: a secret, never logged. */
+    static final String VLESS_LINK = "$(prop vless_link '')";
 }
 EOF
 
+# --- Xray core (libs/libv2ray.aar, from tools/fetch_libs.sh): its Java classes and the 32-bit ARM library (the TV's
+# only ABI; the other ABIs and the geo databases stay out of the APK).
+AAR=libs/libv2ray.aar
+[ -f "$AAR" ] || { echo "Missing $AAR: run tools/fetch_libs.sh"; exit 1; }
+mkdir -p out/aar out/native/lib/armeabi-v7a
+unzip -qo "$AAR" classes.jar jni/armeabi-v7a/libgojni.so -d out/aar
+cp out/aar/jni/armeabi-v7a/libgojni.so out/native/lib/armeabi-v7a/
+
 # --- Build
-"$BT/aapt2" compile --dir app/res -o out/res.zip
+bt aapt2 compile --dir app/res -o out/res.zip
 # Fonts uncompressed: Android reads them straight from the APK.
-"$BT/aapt2" link -o out/base.apk -I "$AJ" --manifest app/AndroidManifest.xml --java out/gen out/res.zip \
-  --min-sdk-version 28 --target-sdk-version 33 -A app/assets -0 ttf
-"$JAVAC" -nowarn -Xlint:-options -source 8 -target 8 -bootclasspath "$AJ:$BT/core-lambda-stubs.jar" -classpath "$AJ" \
+bt aapt2 link -o out/base.apk -I "$AJ" --manifest app/AndroidManifest.xml --java out/gen out/res.zip \
+  --min-sdk-version 28 --target-sdk-version 33
+# Assets go in with jar, stored uncompressed (Android reads the fonts straight from the APK): aapt2 on Windows writes
+# their paths with backslashes, which Android can't find.
+"$JAR" -u0Mf out/base.apk -C app assets
+"$JAVAC" -encoding UTF-8 -nowarn -Xlint:-options -source 8 -target 8 -bootclasspath "$AJ:$BT/core-lambda-stubs.jar" -classpath "$AJ:$(pwd)/out/aar/classes.jar" \
   -d out/classes $(find app/src out/gen -name '*.java')
-"$BT/d8" --release --min-api 28 --lib "$AJ" --output out $(find out/classes -name '*.class')
-(cd out && zip -qj base.apk classes.dex)
-"$BT/zipalign" -f -p 4 out/base.apk out/aligned.apk
+bt d8 --release --min-api 28 --lib "$AJ" --output out $(find out/classes -name '*.class') out/aar/classes.jar
+"$JAR" -uMf out/base.apk -C out classes.dex
+"$JAR" -uMf out/base.apk -C out/native lib
+bt zipalign -f -p 4 out/base.apk out/aligned.apk
 
 # --- Sign with your own key (created once; updates need the same key, so keep freemytv.keystore)
 if [ ! -f freemytv.keystore ]; then
   "$KEYTOOL" -genkeypair -keystore freemytv.keystore -alias freemytv -keyalg RSA -keysize 2048 -validity 20000 \
     -storepass freemytv -keypass freemytv -dname "CN=Free My TV" >/dev/null 2>&1
 fi
-"$BT/apksigner" sign --ks freemytv.keystore --ks-pass pass:freemytv --key-pass pass:freemytv --out FreeMyTV.apk out/aligned.apk
+bt apksigner sign --ks freemytv.keystore --ks-pass pass:freemytv --key-pass pass:freemytv --out FreeMyTV.apk out/aligned.apk
 echo "Built FreeMyTV.apk ($(du -h FreeMyTV.apk | cut -f1)). Install: adb install -r FreeMyTV.apk"

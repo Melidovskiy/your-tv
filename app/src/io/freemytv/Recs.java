@@ -55,32 +55,27 @@ final class Recs {
     /** Bump when what is saved for each title changes (the saved list is discarded and fetched again). */
     private static final int CACHE_VERSION = 3;
     private static final int MANHA = 0, TARDE = 1, NOITE = 2;
-    static final String[] PERIOD_LABEL = {"PARA ESTA MANHÃ", "PARA ESTA TARDE", "PARA ESTA NOITE"};
-    static final String[] PERIOD_LABEL_EN = {"THIS MORNING", "THIS AFTERNOON", "TONIGHT"};
-    static final String[] PERIOD_LABEL_ES = {"PARA ESTA MAÑANA", "PARA ESTA TARDE", "PARA ESTA NOCHE"};
+    static final String[] PERIOD_LABEL = {"НА УТРО", "НА ДЕНЬ", "НА ВЕЧЕР"};
     /** Service name on TMDB (part of the name, lowercase) → TV app (HomeApps key, package). */
+    /** TMDB provider name (lowercase, contained) → key and the TV app's package: the Russian services. */
     private static final String[][] SERVICES = {
-        {"netflix", "netflix", "com.netflix.ninja"},
-        {"prime video", "prime", "com.amazon.amazonvideo.livingroom"},
-        {"disney", "disney", "com.disney.disneyplus"},
-        {"hulu", "hulu", "com.hulu.livingroomplus"},
-        {"paramount", "paramount", "com.cbs.ott"},
-        {"peacock", "peacock", "com.peacocktv.peacockandroid"},
-        {"globoplay", "globoplay", "com.globo.globotv"},
-        {"max", "max", "com.wbd.stream"},
-        {"apple tv", "appletv", "com.apple.atve.androidtv.appletv"},
+        {"okko", "okko", "tv.okko.androidtv"},
+        {"kinopoisk", "kinopoisk", "ru.kinopoisk.tv"},
+        {"wink", "wink", "ru.rt.video.app.tv"},
+        {"kion", "kion", "ru.mts.mtstv"},
+        {"ivi", "ivi", "ru.ivi.client"},
+        {"premier", "premier", "gpm.tnt_premier"},
+        {"more.tv", "moretv", "ru.more.play"},
     };
     private static final Map<String, String> SERVICE_NAME = new HashMap<>();
     static {
-        SERVICE_NAME.put("netflix", "Netflix");
-        SERVICE_NAME.put("prime", "Prime Video");
-        SERVICE_NAME.put("disney", "Disney+");
-        SERVICE_NAME.put("hulu", "Hulu");
-        SERVICE_NAME.put("paramount", "Paramount+");
-        SERVICE_NAME.put("peacock", "Peacock");
-        SERVICE_NAME.put("globoplay", "Globoplay");
-        SERVICE_NAME.put("max", "Max");
-        SERVICE_NAME.put("appletv", "Apple TV");
+        SERVICE_NAME.put("okko", "Okko");
+        SERVICE_NAME.put("kinopoisk", "Кинопоиск");
+        SERVICE_NAME.put("wink", "Wink");
+        SERVICE_NAME.put("kion", "KION");
+        SERVICE_NAME.put("ivi", "ivi");
+        SERVICE_NAME.put("premier", "PREMIER");
+        SERVICE_NAME.put("moretv", "more.tv");
     }
     /** Country for "what streams where" (config.properties "tmdb_region", e.g. US, GB, BR). */
     private static final String REGION = Config.TMDB_REGION.trim().toUpperCase(Locale.ROOT);
@@ -152,7 +147,7 @@ final class Recs {
     String error() { return error; }
 
     static String periodLabel() {
-        return (Ui.es ? PERIOD_LABEL_ES : Ui.en ? PERIOD_LABEL_EN : PERIOD_LABEL)[period(System.currentTimeMillis())];
+        return PERIOD_LABEL[period(System.currentTimeMillis())];
     }
 
     private static int period(long now) {
@@ -235,7 +230,7 @@ final class Recs {
         long stamp = sourceStamp();   // a new key, country or installed streaming-app set refetches
         boolean newKey = stamp != keyStamp;
         long sinceFail = now - failedAt;    // negative = the clock went back: don't wait
-        if (!newKey && failedAt != 0 && sinceFail >= 0 && sinceFail < 10 * 60_000L) return;
+        if (!newKey && failedAt != 0 && sinceFail >= 0 && sinceFail < 60_000L) return;   // retry after a minute (the VPN may still be starting)
         int p = period(now);
         boolean stale = newKey || p != period || now - listAt > LIST_EVERY || now < listAt || picks.isEmpty()
                 || !listLanguage.equals(Ui.language);
@@ -314,7 +309,7 @@ final class Recs {
     void prefetchAll() {
         if (!hasKey(context) || fetching) return;
         long sinceFail = System.currentTimeMillis() - failedAt;
-        if (failedAt != 0 && sinceFail >= 0 && sinceFail < 10 * 60_000L) return;
+        if (failedAt != 0 && sinceFail >= 0 && sinceFail < 60_000L) return;   // retry after a minute (the VPN may still be starting)
         List<Pick> todo = new ArrayList<>();
         for (Pick p : picks) if (!p.detailed || (p.pkg != null && !hasImage(p))) todo.add(p);
         if (todo.isEmpty()) return;
@@ -420,8 +415,7 @@ final class Recs {
 
     /** Language of titles and genres; the services come from the region. */
     private static String lang() {
-        if (Ui.es) return "ES".equals(java.util.Locale.getDefault().getCountry()) ? "es-ES" : "es-MX";
-        return Ui.en ? "en-US" : "pt-BR";
+        return "ru-RU";
     }
 
     private static void alternate(List<Pick> out, java.util.Set<String> seen, List<Pick> a, List<Pick> b, int max) {
@@ -457,19 +451,17 @@ final class Recs {
         if (best != null) p.backdrop = best;
         List<String> parts = new ArrayList<>();
         JSONArray genres = o.optJSONArray("genres");
-        if (p.kind.equals("tv")) parts.add(Ui.tr("Série", "Series"));
+        if (p.kind.equals("tv")) parts.add("Сериал");
         if (genres != null && genres.length() > 0) {
             String name = genres.getJSONObject(0).optString("name");
-            parts.add(Ui.en ? name : genre(name));
+            parts.add(genre(name));
         }
         if (p.kind.equals("movie")) {
             int minutes = o.optInt("runtime");
-            if (minutes > 0 && Ui.en) parts.add(minutes >= 60 ? (minutes / 60) + "h " + (minutes % 60) + "m" : minutes + "m");
-            else if (minutes > 0) parts.add(minutes >= 60 ? (minutes / 60) + " h " + (minutes % 60) + " min" : minutes + " min");
+            if (minutes > 0) parts.add(minutes >= 60 ? (minutes / 60) + " ч " + (minutes % 60) + " мин" : minutes + " мин");
         } else {
             int seasons = o.optInt("number_of_seasons");
-            if (seasons > 0 && Ui.en) parts.add(seasons == 1 ? "1 season" : seasons + " seasons");
-            else if (seasons > 0) parts.add(seasons == 1 ? "1 temporada" : seasons + " temporadas");
+            if (seasons > 0) parts.add(seasons + " " + Ru.plural(seasons, "сезон", "сезона", "сезонов"));
         }
         JSONObject wp = o.optJSONObject("watch/providers");
         JSONObject br = wp == null ? null : wp.optJSONObject("results") == null ? null : wp.optJSONObject("results").optJSONObject(REGION);
@@ -486,21 +478,17 @@ final class Recs {
         p.detailed = true;
     }
 
-    /** TV genres that TMDB returns in English even in pt-BR. */
-    private static final String[][] GENRES_PT = {
-        {"Action & Adventure", "Ação e Aventura"}, {"Sci-Fi & Fantasy", "Ficção Científica e Fantasia"},
-        {"War & Politics", "Guerra e Política"}, {"Kids", "Infantil"}, {"News", "Notícias"}, {"Soap", "Novela"},
-        {"Talk", "Entrevistas"},
-    };
-    private static final String[][] GENRES_ES = {
-        {"Action & Adventure", "Acción y Aventura"}, {"Sci-Fi & Fantasy", "Ciencia ficción y Fantasía"},
-        {"War & Politics", "Guerra y Política"}, {"Kids", "Infantil"}, {"News", "Noticias"},
-        {"Soap", "Telenovela"}, {"Talk", "Entrevistas"},
+    /** TV genres that TMDB may return in English even with ru-RU. */
+    private static final String[][] GENRES = {
+        {"Action & Adventure", "Боевик и приключения"}, {"Sci-Fi & Fantasy", "Фантастика"},
+        {"War & Politics", "Война и политика"}, {"Kids", "Детский"}, {"News", "Новости"}, {"Soap", "Мыльная опера"},
+        {"Talk", "Ток-шоу"}, {"Reality", "Реалити-шоу"},
     };
 
     private static String genre(String name) {
-        for (String[] g : Ui.es ? GENRES_ES : GENRES_PT) if (g[0].equalsIgnoreCase(name)) return g[1];
-        return name;
+        for (String[] g : GENRES) if (g[0].equalsIgnoreCase(name)) return g[1];
+        // TMDB's Russian genres are lowercase ("мультфильм").
+        return name.isEmpty() ? name : name.substring(0, 1).toUpperCase(Ru.LOCALE) + name.substring(1);
     }
 
     /**
@@ -528,7 +516,7 @@ final class Recs {
     private static String[] service(String name) {
         String n = name.toLowerCase(Locale.ROOT);
         for (String[] s : SERVICES) {
-            if (s[0].equals("max") ? n.matches(".*\\bmax\\b.*") : n.contains(s[0])) return s;
+            if (n.contains(s[0])) return s;
         }
         return null;
     }
@@ -548,9 +536,7 @@ final class Recs {
         if (key == null) throw new IOException("no TMDB key");
         boolean bearer = key.startsWith("eyJ");   // read access token (v4) or API key (v3)
         String url = API + path + (bearer ? "" : (path.contains("?") ? "&" : "?") + "api_key=" + URLEncoder.encode(key, "UTF-8"));
-        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-        c.setConnectTimeout(8000);
-        c.setReadTimeout(8000);
+        HttpURLConnection c = Net.open(url, true);   // TMDB is blocked in Russia: through the VPN server
         c.setRequestProperty("Accept", "application/json");
         if (bearer) c.setRequestProperty("Authorization", "Bearer " + key);
         try {
@@ -576,8 +562,7 @@ final class Recs {
         //noinspection ResultOfMethodCallIgnored
         f.getParentFile().mkdirs();
         File part = new File(f.getPath() + ".part");
-        HttpURLConnection c = (HttpURLConnection) new URL(IMAGES + p.backdrop).openConnection();
-        c.setConnectTimeout(8000);
+        HttpURLConnection c = Net.open(IMAGES + p.backdrop, true);
         c.setReadTimeout(20000);
         try (InputStream in = c.getInputStream(); FileOutputStream out = new FileOutputStream(part)) {
             byte[] buffer = new byte[16384];

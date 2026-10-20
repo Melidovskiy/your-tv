@@ -49,7 +49,7 @@ final class Shaders {
         "  return v + 0.0625 * noise(p);\n" +
         "}\n" +
         // Aurora: a slowly flowing domain warp. The light bands sit in the middle of the sky; the top (clock and
-        // prices) and the bottom (dock) are darker so white text stands out.
+        // buttons) and the bottom (dock) are darker so white text stands out.
         "half3 aurora(float2 uv, float detail) {\n" +
         "  float2 p = float2(uv.x * (res.x / res.y), uv.y) * 1.7;\n" +
         "  float tt = t * 0.035 * speed;\n" +

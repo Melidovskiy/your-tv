@@ -81,13 +81,6 @@ final class Backdrop {
                 new int[] {black(0.38f), black(0.3f), black(0.18f), black(0.05f), 0},
                 new float[] {0, 0.25f, 0.55f, 0.8f, 1}, Shader.TileMode.CLAMP));
         c.drawRect(0, H * 0.4f, W, H, scrim);
-        // Behind the prices (above the shelf, on the right), a localized scrim for the small text.
-        scrim.setShader(new android.graphics.RadialGradient(W * 0.8f, H * 0.65f, W * 0.24f,
-                new int[] {black(0.42f), black(0.18f), 0}, new float[] {0, 0.55f, 1}, Shader.TileMode.CLAMP));
-        c.save();
-        c.scale(1, 0.32f, W * 0.8f, H * 0.65f);
-        c.drawCircle(W * 0.8f, H * 0.65f, W * 0.24f, scrim);
-        c.restore();
         scrim.setShader(new LinearGradient(0, 0, 0, H * 0.24f, new int[] {black(0.34f), black(0.1f), 0},
                 new float[] {0, 0.5f, 1}, Shader.TileMode.CLAMP));
         c.drawRect(0, 0, W, H * 0.24f, scrim);
@@ -95,6 +88,31 @@ final class Backdrop {
         int[] frost = reduce(out, FW, FH, 3, 3);
         int[] glass = reduce(out, GW, GH, 2, 2);
         return new Backdrop(gpu(out), frost, glass, null, null, null, null, null, null);
+    }
+
+    /**
+     * The home screen's wallpaper (assets/wallpaper.jpg): the photo sharp, with soft dark gradients where the text sits
+     * (top, left, bottom), plus its frosted and glass versions, lightened and darkened, for the glass surfaces.
+     */
+    static Backdrop wallpaper(Bitmap src) {
+        Bitmap out = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(out);
+        Paint photo = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+        float scale = Math.max((float) W / src.getWidth(), (float) H / src.getHeight());
+        float sw = src.getWidth() * scale, sh = src.getHeight() * scale;
+        c.drawBitmap(src, null, new RectF((W - sw) / 2, (H - sh) / 2, (W + sw) / 2, (H + sh) / 2), photo);
+        src.recycle();
+        int[] frost = reduce(out, FW, FH, 3, 3);
+        int[] glass = reduce(out, GW, GH, 2, 2);
+        Paint scrim = new Paint(Paint.DITHER_FLAG);
+        scrim.setShader(new LinearGradient(0, 0, 0, H * 0.3f, new int[] {black(0.5f), black(0.22f), 0},
+                new float[] {0, 0.55f, 1}, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, W, H * 0.3f, scrim);
+        scrim.setShader(new LinearGradient(0, H, 0, H * 0.55f, new int[] {black(0.45f), black(0.2f), 0},
+                new float[] {0, 0.5f, 1}, Shader.TileMode.CLAMP));
+        c.drawRect(0, H * 0.55f, W, H, scrim);
+        return new Backdrop(gpu(out), frost, glass, null, null, whiten(frost.clone(), 0.55f), whiten(glass.clone(), 0.45f),
+                darken(frost.clone(), 0.55f), darken(glass.clone(), 0.4f));
     }
 
     /** How many times smaller the screensaver photo's frosted version is (the glass math uses the same number). */
@@ -165,14 +183,14 @@ final class Backdrop {
         return g;
     }
 
-    /** Blends with a near-black (the darkest gray of Apple's dark-mode backgrounds), keeping the photo's tint. */
+    /** Blends with a warm near-black (0x16100E, the night background), keeping the photo's tint. */
     private static int[] darken(int[] px, float amount) {
-        float keep = 1 - amount, base = 11 * amount;
+        float keep = 1 - amount;
         for (int i = 0; i < px.length; i++) {
             int p = px[i];
-            int r = Math.round(((p >> 16) & 255) * keep + base);
-            int g = Math.round(((p >> 8) & 255) * keep + base);
-            int b = Math.round((p & 255) * keep + base + 2 * amount);
+            int r = Math.round(((p >> 16) & 255) * keep + 22 * amount);
+            int g = Math.round(((p >> 8) & 255) * keep + 16 * amount);
+            int b = Math.round((p & 255) * keep + 14 * amount);
             px[i] = 0xFF000000 | (r << 16) | (g << 8) | b;
         }
         return px;
@@ -181,9 +199,10 @@ final class Backdrop {
     private static int[] whiten(int[] px, float amount) {
         for (int i = 0; i < px.length; i++) {
             int p = px[i];
-            int r = Math.round(((p >> 16) & 255) * (1 - amount) + 255 * amount);
-            int g = Math.round(((p >> 8) & 255) * (1 - amount) + 255 * amount);
-            int b = Math.round((p & 255) * (1 - amount) + 255 * amount);
+            // Toward a warm white (0xFBF3EC), the day background.
+            int r = Math.round(((p >> 16) & 255) * (1 - amount) + 251 * amount);
+            int g = Math.round(((p >> 8) & 255) * (1 - amount) + 243 * amount);
+            int b = Math.round((p & 255) * (1 - amount) + 236 * amount);
             px[i] = 0xFF000000 | (r << 16) | (g << 8) | b;
         }
         return px;

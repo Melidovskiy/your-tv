@@ -25,7 +25,6 @@ final class Prefs {
 
     static void init(Context c) {
         app = c.getApplicationContext();
-        Ui.applyLanguage();   // the language picked on the TV, now that it can be read
     }
 
     private static SharedPreferences sp() {
@@ -42,16 +41,7 @@ final class Prefs {
         version++;
     }
 
-    // MARK: - Language and units
-
-    /** "auto", "pt" or "en". */
-    static String language() {
-        String v = app == null ? Config.LANGUAGE : sp().getString("language", Config.LANGUAGE);
-        v = v.trim().toLowerCase(Locale.ROOT);
-        return v.startsWith("pt") ? "pt" : v.startsWith("es") ? "es" : v.startsWith("en") ? "en" : "auto";
-    }
-
-    static void setLanguage(String v) { put("language", v); Ui.applyLanguage(); }
+    // MARK: - Units
 
     /** "auto", "C" or "F". */
     static String temperature() {
@@ -63,7 +53,8 @@ final class Prefs {
 
     /** "auto" (dark from sunset to sunrise), "light" or "dark". */
     static String theme() {
-        String v = sp().getString("theme", "auto");
+        // Dark by default: white text reads best over the forest wallpaper.
+        String v = sp().getString("theme", "dark");
         return v.equals("light") || v.equals("dark") ? v : "auto";
     }
 
@@ -75,16 +66,10 @@ final class Prefs {
     static String latitude() { return Config.LATITUDE; }
     static String longitude() { return Config.LONGITUDE; }
 
-    // MARK: - Widgets and coins
+    // MARK: - Widgets
 
     static boolean weather() { return sp().getBoolean("weather", true); }
     static void setWeather(boolean on) { put("weather", on); }
-
-    static boolean quotes() { return sp().getBoolean("quotes", Config.SHOW_CRYPTO); }
-    static void setQuotes(boolean on) { put("quotes", on); }
-
-    static boolean coin(int i) { return sp().getBoolean("coin" + i, true); }
-    static void setCoin(int i, boolean on) { put("coin" + i, on); }
 
     // MARK: - Shelf
 
@@ -101,6 +86,17 @@ final class Prefs {
         StringBuilder sb = new StringBuilder();
         for (String p : packages) sb.append(sb.length() == 0 ? "" : ",").append(p);
         put("shelf", sb.toString());
+    }
+
+    /** Apps kept out of the dock altogether (still in «Все приложения»). */
+    static java.util.Set<String> dockHidden() {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (String p : sp().getString("dockHidden", "").split(",")) if (!p.isEmpty()) out.add(p);
+        return out;
+    }
+
+    static void setDockHidden(java.util.Set<String> packages) {
+        put("dockHidden", String.join(",", packages));
     }
 
     // MARK: - Remote buttons

@@ -27,10 +27,8 @@ final class Ui {
 
     /** Android 9 to 11: older TVs and boxes, whose GPUs need the cheaper drawing paths (Shadows, rounded images). */
     static final boolean LEGACY = Build.VERSION.SDK_INT < 31;
-    static final Locale PT = new Locale("pt", "BR");
-    /** English, Portuguese or Spanish, from the settings or, with "auto", the TV's own language. */
-    static volatile String language = language();
-    static volatile boolean en = "en".equals(language), es = "es".equals(language);
+    /** The interface is in Russian only (keys the formatted-value cache and the TMDB image languages). */
+    static final String language = "ru";
     static Typeface thin, light, displayMedium, displaySemibold, regular, medium, semibold;
     private static boolean loaded;
     private static final Rect BOUNDS = new Rect();
@@ -64,20 +62,6 @@ final class Ui {
 
     private static final String FONT = "fonts/InterVariable.ttf";
 
-    /** "pt", "es" or "en": the one picked (TV settings or config.properties), or with "auto" the TV's own, else English. */
-    private static String language() {
-        String lang = Prefs.language();
-        if (!lang.equals("auto")) return lang;
-        lang = Locale.getDefault().getLanguage();
-        return "pt".equals(lang) || "es".equals(lang) ? lang : "en";
-    }
-
-    /** After the language changes in the settings (and once Prefs can read them). */
-    static void applyLanguage() {
-        language = language();
-        en = "en".equals(language);
-        es = "es".equals(language);
-    }
 
     private static boolean has(AssetManager a, String path) {
         try (InputStream in = a.open(path)) {
@@ -95,7 +79,7 @@ final class Ui {
         return p;
     }
 
-    /** Fixed-width digits (the clock and the prices don't jitter when a digit changes). */
+    /** Fixed-width digits (the clock and the temperatures don't jitter when a digit changes). */
     static Paint numbers(Typeface face, float size, int color) {
         Paint p = text(face, size, color);
         p.setFontFeatureSettings("'tnum'");
@@ -133,34 +117,18 @@ final class Ui {
         return Math.max(0, Math.min(1, v));
     }
 
-    static String tr(String pt, String english) {
-        return es ? Spanish.text(english) : en ? english : pt;
-    }
-
-    static String tr(String pt, String english, String spanish) {
-        return es ? spanish : en ? english : pt;
-    }
-
     static Locale locale() {
-        return es ? spanish() : en ? Locale.US : PT;
+        return Ru.LOCALE;
     }
 
-    /** The TV's own Spanish (es-MX, es-AR…) when it is in Spanish, Spain's otherwise. */
-    private static Locale spanish() {
-        Locale tv = Locale.getDefault();
-        return "es".equals(tv.getLanguage()) ? tv : new Locale("es", "ES");
-    }
-
-    /** "21:47" (in English, "9:47", like the iPhone in the US). */
+    /** "21:47". */
     static String clock(long now) {
-        return en ? new SimpleDateFormat("h:mm", Locale.US).format(new Date(now))
-                : new SimpleDateFormat("HH:mm", locale()).format(new Date(now));
+        return new SimpleDateFormat("HH:mm", locale()).format(new Date(now));
     }
 
-    /** "5:21" (sunrise and sunset; in English, "5:21 AM"). */
+    /** "5:21" (sunrise and sunset). */
     static String time(long at) {
-        return once("time", at, () -> en ? new SimpleDateFormat("h:mm a", Locale.US).format(new Date(at))
-                : new SimpleDateFormat("H:mm", locale()).format(new Date(at)));
+        return once("time", at, () -> new SimpleDateFormat("H:mm", locale()).format(new Date(at)));
     }
 
     private static final HashMap<String, String> FORMATTED = new HashMap<>();
@@ -182,10 +150,9 @@ final class Ui {
         }
     }
 
-    /** "domingo, 18 de outubro" (lowercase, like the iPhone in Portuguese); "Sunday, October 18" in English. */
+    /** "вторник, 20 октября". */
     static String date(long now) {
-        return en ? new SimpleDateFormat("EEEE, MMMM d", Locale.US).format(new Date(now))
-                : new SimpleDateFormat("EEEE, d 'de' MMMM", locale()).format(new Date(now));
+        return new SimpleDateFormat("EEEE, d MMMM", locale()).format(new Date(now));
     }
 
     /** Spinning arc (work in progress). */

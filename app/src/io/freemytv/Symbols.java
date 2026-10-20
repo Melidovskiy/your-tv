@@ -15,8 +15,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Material Symbols Rounded icons (Apache 2.0), rendered by tools/make_symbols.py as white PNGs in assets/symbols. Drawn
- * like text: `pointSize` is the size of the font next to the icon, and the icon is centered on that font's cap height.
+ * Material Symbols Rounded icons (Apache 2.0), rendered by tools/make_symbols.py as white PNGs in assets/symbols, and
+ * Lucide line icons (ISC) as vector drawables res/drawable/ic_<name>.xml, rasterized once. Drawn like text: `pointSize`
+ * is the size of the font next to the icon, and the icon is centered on that font's cap height.
  */
 final class Symbols {
     private Symbols() {}
@@ -40,9 +41,24 @@ final class Symbols {
                 if (b != null) b.setHasMipMap(true);
             } catch (IOException ignored) {
             }
+            if (b == null) b = vector(c, name);
             CACHE.put(name, b);
             return b;
         }
+    }
+
+    /** ic_<name>.xml drawn white into a square at the PNGs' em (172 px), or null when there is none. */
+    private static Bitmap vector(Context c, String name) {
+        int id = c.getResources().getIdentifier("ic_" + name, "drawable", c.getPackageName());
+        if (id == 0) return null;
+        android.graphics.drawable.Drawable d = c.getDrawable(id);
+        if (d == null) return null;
+        int size = 172;
+        Bitmap b = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        d.setBounds(0, 0, size, size);
+        d.draw(new Canvas(b));
+        b.setHasMipMap(true);
+        return b;
     }
 
     static float width(Context c, String name, float pointSize) {

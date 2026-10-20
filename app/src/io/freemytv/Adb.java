@@ -72,7 +72,7 @@ final class Adb implements Closeable {
             s.connect(new InetSocketAddress("127.0.0.1", 5555), 3000);
         } catch (IOException e) {
             s.close();
-            throw new IOException("debugging is off on the TV (port 5555 closed)");
+            throw new IOException("на ТВ выключена отладка по USB");
         }
         s.setSoTimeout(10_000);
         Adb adb = new Adb(s);
@@ -84,14 +84,14 @@ final class Adb implements Closeable {
                 try {
                     m = adb.read();
                 } catch (SocketTimeoutException e) {
-                    throw new IOException(offeredKey ? "debugging permission wasn't accepted on the TV" : "the TV's ADB didn't respond");
+                    throw new IOException(offeredKey ? "на ТВ не подтвердили «Разрешить отладку по USB?»" : "ADB на ТВ не отвечает");
                 }
                 if (m.command == CNXN) {
                     s.setSoTimeout(20_000);
                     return adb;
                 }
-                if (m.command == STLS) throw new IOException("the TV asked for TLS (wireless debugging); use USB debugging");
-                if (m.command != AUTH || m.arg0 != AUTH_TOKEN) throw new IOException("unexpected reply from ADB");
+                if (m.command == STLS) throw new IOException("ТВ просит беспроводную отладку; включите отладку по USB");
+                if (m.command != AUTH || m.arg0 != AUTH_TOKEN) throw new IOException("неожиданный ответ ADB");
                 if (!signed) {
                     adb.send(AUTH, AUTH_SIGNATURE, 0, sign(keys.getPrivate(), m.data));
                     signed = true;
@@ -102,7 +102,7 @@ final class Adb implements Closeable {
                     if (approval != null) approval.waiting();
                     s.setSoTimeout(approvalMs);
                 } else {
-                    throw new IOException("the TV rejected the app's key");
+                    throw new IOException("ТВ отклонил ключ приложения");
                 }
             }
         } catch (IOException e) {
@@ -126,7 +126,7 @@ final class Adb implements Closeable {
                 result.write(m.data);
                 send(OKAY, local, m.arg0, null);
             } else if (m.command == CLSE) {
-                if (remote == 0 && m.arg0 == 0) throw new IOException("ADB refused the command");
+                if (remote == 0 && m.arg0 == 0) throw new IOException("ADB отклонил команду");
                 send(CLSE, local, m.arg0, null);
                 return result.toString("UTF-8");
             }

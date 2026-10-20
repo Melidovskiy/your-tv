@@ -52,37 +52,14 @@ final class HomeMode {
     static final String GOOGLE_SETUP = "com.google.android.tungsten.setupwraith";
 
     /**
-     * Turned off in Free My TV mode, when the TV has them. Google extras first, then TV-maker extras (TCL here; add
-     * your brand's, see the README). The TV's own home screen and screensaver are added at switch time.
+     * Android settings the new mode changes (saved first, restored by Original): Private DNS and animation speed
+     * (global), and this app as the always-on VPN (secure).
      */
-    static final String[] DEBLOAT = {
-        "com.google.android.play.games", "com.google.android.youtube.tvmusic",        // Play Games, YouTube Music
-        // TCL
-        "com.tcl.magiconnectfree", "com.tcl.miracast",                                // screen mirroring apps
-        "com.tcl.waterfall.overseas", "com.tcl.channelplus",                          // TCL Channel and its Live TV
-        "com.tcl.messagebox", "com.tcl.usercenter",                                   // TCL messages and account
-        "com.tcl.exhibit", "com.tcl.esticker", "com.tcl.hotelmenu",                   // store demo, hotel menu
-        "com.tcl.repairguide", "com.tcl.ocean.instructions", "com.tcl.logkit",        // repair guide, manual, logs
-    };
-
-    /** The voice assistant, only with disable_assistant=true in config.properties (the mic button stops working). */
-    static final String[] ASSISTANT = {"com.google.android.katniss", "com.android.hotwordenrollment.okgoogle"};
-
-    /** Never turned off, not even by mistake (picture, sound, inputs, remote, store). Checked before every disable. */
-    private static final Set<String> PROTECTED = new HashSet<>(Arrays.asList(
-        "com.tcl.ttvs", "com.tvos", "com.tcl.systemserver", "com.tcl.systemui.plugin", "com.tcl.tv", "com.tcl.tvinput",
-        "com.tcl.hearaid", "com.dolby.android.audio.service", "com.tcl.globalkeyoverlay", "com.tcl.autopair",
-        "com.tcl.UpdatePeripheral", "com.tcl.dashboard", "com.tcl.suspension", "com.tcl.providers.config",
-        "com.tcl.gamebar", "com.tcl.airplay2", "com.mirakulo.astrotv.service", "com.tcl.initsetup",
-        "com.tcl.useragreement", "com.tcl.factory.view", "com.tcl.guard", "com.tcl.t_solo",
-        "com.google.android.gms", "com.google.android.gsf", "com.android.vending", "com.google.android.apps.mediashell",
-        "com.google.android.tv.remote.service", "com.google.android.inputmethod.latin", "com.google.android.webview",
-        "com.android.tv.settings", "com.android.systemui", "android", PKG,
-        // Philips (TP Vision) and MediaTek: system, Ambilight, live TV and inputs, setup, factory menu (#11)
-        "org.droidtv", "org.droidtv.ambisvc", "org.droidtv.ui.strings", "org.droidtv.tv.packageinfo", "org.droidtv.icp",
-        "org.droidtv.gel", "org.droidtv.eum", "com.mediatek.tv.service", "com.mediatek.tvinput", "com.mediatek.network",
-        "com.mediatek.wwtv.tvcenter", "com.mediatek.wwtv.setupwizard", "com.mediatek.tv.factory",
-        "mediatek.factorymenu.ui", "com.tpv.xmic.ots.cms.client"));
+    private static final String[] TWEAKED = {"global private_dns_mode", "global private_dns_specifier",
+            "global window_animation_scale", "global transition_animation_scale", "global animator_duration_scale",
+            "secure always_on_vpn_app", "secure always_on_vpn_lockdown"};
+    /** AdGuard's public DNS: blocks ad and tracking domains for every app on the TV. */
+    static final String AD_DNS = "dns.adguard-dns.com";
 
     /** One switch at a time (jobs can overlap: a boot check and a button press). */
     private static final Object RUN = new Object();
@@ -104,11 +81,14 @@ final class HomeMode {
     static void bootCheck(Context c) {
         ensureRemoteService(c, 30_000);
         ModeJob.schedule(c, ModeJob.VERIFY, null, 45_000);
+        ModeJob.schedulePeriodic(c, ModeJob.DNS_CHECK, 30 * 60_000L);
+        if (FREE.equals(state(c).optString("mode"))) Vpn.start(c);
     }
 
     /** After an update of this app: complete Free My TV mode if anything is missing. */
     static void verify(Context c) {
         ModeJob.schedule(c, ModeJob.VERIFY, null, 0);
+        if (FREE.equals(state(c).optString("mode"))) Vpn.start(c);   // an update stops the running VPN
     }
 
     /**
@@ -190,33 +170,28 @@ final class HomeMode {
             Set<String> owners = wifiOwners(adb);
             boolean setupHome = setupIsHome(adb);
             if ((setupHome && owners.contains(GOOGLE_SETUP)) || owners.contains(packageOf(home))) {
-                throw new IOException(Ui.tr("a configuração inicial da TV salvou o Wi-Fi, e desligá-la apagaria essas redes. "
-                        + "Em Configurações → Rede e Internet, esqueça a rede e conecte de novo (as fora de alcance não aparecem "
-                        + "lá: o Claude Code apaga pelo computador) e tente outra vez.",
-                        "the TV's first setup saved the Wi-Fi, and turning it off would erase those networks. "
-                        + "In Settings → Network & Internet, forget the network and connect again (networks out of range don't "
-                        + "show there: Claude Code can remove them from your computer), then try once more.",
-                        "la configuración inicial del TV guardó el Wi-Fi, y desactivarla borraría esas redes. "
-                        + "En Ajustes → Red e Internet, olvida la red y vuelve a conectarte (las fuera de alcance no aparecen "
-                        + "ahí: Claude Code las borra desde la computadora) y vuelve a intentarlo."));
+                throw new IOException("первичная настройка ТВ сохранила сеть Wi-Fi, и её отключение удалит эти сети. "
+                        + "В Настройках → Сеть и Интернет забудьте сеть и подключитесь заново (сети вне зоны действия "
+                        + "там не видны: их можно удалить с компьютера), затем попробуйте ещё раз.");
             }
             if (metrics(latest, ORIGINAL) == null && !home.isEmpty()) {
-                busy(c, Ui.tr("Medindo o Início original…", "Measuring the original home screen…"));
+                busy(c, "Измеряю заводской главный экран…");
                 measureHomeTime(c, adb, ORIGINAL);
                 measureMemory(c, adb, ORIGINAL);
             }
-            busy(c, Ui.tr("Trocando o Início e a tela de descanso…", "Switching the home screen and screensaver…"));
+            busy(c, "Меняю главный экран и заставку…");
             check(adb.shell("cmd package set-home-activity " + HOME_ACTIVITY), "Success",
-                    Ui.tr("o Android não aceitou o novo Início", "Android didn't accept the new home screen"));
+                    "Android не принял новый главный экран");
             adb.shell("settings put secure screensaver_components " + DREAM);
+            applyTweaks(c, adb);
             List<String> targets = targets(home, dream, setupHome);
             Set<String> disabled = new HashSet<>(stringList(state(c), "disabled"));
             Set<String> present = packages(adb, "");
             int done = 0;
             for (String pkg : targets) {
                 done++;
-                busy(c, Ui.tr("Desligando apps (", "Turning off apps (") + done + "/" + targets.size() + ")…");
-                if (PROTECTED.contains(pkg) || !present.contains(pkg) || owners.contains(pkg)) continue;
+                busy(c, "Отключаю приложения (" + done + "/" + targets.size() + ")…");
+                if (Debloat.PROTECTED.contains(pkg) || !present.contains(pkg) || owners.contains(pkg)) continue;
                 String out = adb.shell("pm disable-user --user 0 " + pkg);
                 if (out.contains("disabled-user")) disabled.add(pkg);
                 else AppLog.w("could not turn off " + pkg + ": " + out.trim());
@@ -233,41 +208,49 @@ final class HomeMode {
                     AppLog.w("remote buttons service: " + e.getMessage());
                 }
             }
-            notice(c, Ui.tr("Free My TV ligado: Início e tela de descanso novos, " + disabled.size() + " apps desligados.",
-                    "Free My TV is on: new home screen and screensaver, " + disabled.size() + " apps turned off."));
-            busy(c, Ui.tr("Medindo o Free My TV…", "Measuring Free My TV…"));
+            Vpn.start(c);
+            notice(c, "Новый экран включён: новый главный экран и заставка, отключено " + disabled.size() + " "
+                    + Ru.plural(disabled.size(), "приложение", "приложения", "приложений") + ".");
+            busy(c, "Измеряю новый экран…");
             measureHomeTime(c, adb, FREE);
             done(c, null);
             adb.shell("am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             ModeJob.schedule(c, ModeJob.MEMORY, FREE, 120_000);
         } catch (Exception e) {
-            done(c, Ui.tr("Não deu para ligar o Free My TV: ", "Couldn't turn on Free My TV: ") + e.getMessage());
+            done(c, "Не удалось включить новый экран: " + e.getMessage());
         }
     }
 
     private static void applyOriginal(Context c) {
         JSONObject s = state(c);
         try (Adb adb = connect(c, s)) {
-            busy(c, Ui.tr("Religando os apps…", "Turning the apps back on…"));
             String home = originalHome(s);
+            if (!originalHomeInstalled(adb, home)) {
+                // The factory home screens were uninstalled: there is nothing to go back to, so stay.
+                done(c, "Заводской главный экран удалён с ТВ: остаётся новый.");
+                return;
+            }
+            busy(c, "Включаю приложения обратно…");
             Set<String> toEnable = new HashSet<>(stringList(s, "disabled"));
             for (String pkg : targets(home, s.optString("originalDream", ""), true)) {
-                if (!Arrays.asList(DEBLOAT).contains(pkg) && !Arrays.asList(ASSISTANT).contains(pkg)) toEnable.add(pkg);
+                if (!Arrays.asList(Debloat.DEBLOAT).contains(pkg) && !Arrays.asList(Debloat.ASSISTANT).contains(pkg)) toEnable.add(pkg);
             }
             Set<String> present = packages(adb, "");
             int done = 0;
             List<String> failed = new ArrayList<>();
             for (String pkg : sorted(toEnable)) {
                 done++;
-                busy(c, Ui.tr("Religando apps (", "Turning apps back on (") + done + "/" + toEnable.size() + ")…");
+                busy(c, "Включаю приложения (" + done + "/" + toEnable.size() + ")…");
                 if (!present.contains(pkg)) continue;
                 // Checked: whatever didn't come back stays on the list (and in the notice); nothing disappears silently.
                 String out = adb.shell("pm enable " + pkg);
                 if (!out.contains("new state: enabled")) failed.add(pkg);
             }
-            busy(c, Ui.tr("Devolvendo o Início original…", "Restoring the original home screen…"));
+            Vpn.stop(c);
+            busy(c, "Возвращаю заводской главный экран…");
             boolean homeOk = restoreHome(adb, home);
             adb.shell("settings delete secure screensaver_components");
+            restoreTweaks(c, adb);
             try {
                 remoteService(c, adb, false);
             } catch (IOException e) {
@@ -278,22 +261,186 @@ final class HomeMode {
                     .put("disabled", new JSONArray(failed));
             save(c, s);
             if (failed.isEmpty() && homeOk) {
-                notice(c, Ui.tr("Modo original: Início, tela de descanso e apps de fábrica de volta.",
-                        "Original mode: the factory home screen, screensaver and apps are back."));
+                notice(c, "Заводской режим: главный экран, заставка и приложения как с завода.");
             } else {
                 List<String> problems = new ArrayList<>(failed);
-                if (!homeOk) problems.add(Ui.tr("o Início original", "the original home screen"));
-                notice(c, Ui.tr("Modo original, mas não consegui religar: ", "Original mode, but I couldn't turn back on: ")
+                if (!homeOk) problems.add("заводской главный экран");
+                notice(c, "Заводской режим, но не удалось включить: "
                         + String.join(", ", problems) + ".");
             }
-            busy(c, Ui.tr("Medindo o Início original…", "Measuring the original home screen…"));
+            busy(c, "Измеряю заводской главный экран…");
             measureHomeTime(c, adb, ORIGINAL);
             done(c, null);
             adb.shell("am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             ModeJob.schedule(c, ModeJob.MEMORY, ORIGINAL, 120_000);
         } catch (Exception e) {
-            done(c, Ui.tr("Não deu para voltar ao original: ", "Couldn't go back to the original: ") + e.getMessage());
+            done(c, "Не удалось вернуть заводской режим: " + e.getMessage());
         }
+    }
+
+    /**
+     * Saves the TWEAKED settings (only the first time: the values before this app changed anything), then sets the
+     * animations to half length and, unless turned off in the settings, the ad-blocking DNS.
+     */
+    private static void applyTweaks(Context c, Adb adb) throws IOException, JSONException {
+        JSONObject s = state(c);
+        if (s.optJSONObject("saved") == null) {
+            JSONObject saved = new JSONObject();
+            for (String key : TWEAKED) saved.put(key, adb.shell("settings get " + key).trim());
+            s.put("saved", saved);
+            save(c, s);
+        }
+        for (String key : new String[] {"window_animation_scale", "transition_animation_scale", "animator_duration_scale"}) {
+            adb.shell("settings put global " + key + " 0.5");
+        }
+        setDns(adb, adBlock(c));
+        // The VPN: allowed without the "Allow VPN connection?" prompt, and always on, so it comes back after a reboot.
+        // Lockdown stays off: if the server is down, apps aren't cut off.
+        adb.shell("appops set " + PKG + " ACTIVATE_VPN allow");
+        adb.shell("settings put secure always_on_vpn_app " + PKG);
+        adb.shell("settings put secure always_on_vpn_lockdown 0");
+    }
+
+    /** Puts back what applyTweaks saved ("null" = the setting wasn't there: delete it). */
+    private static void restoreTweaks(Context c, Adb adb) throws IOException {
+        JSONObject s = state(c);
+        JSONObject saved = s.optJSONObject("saved");
+        if (saved == null) return;
+        for (String key : TWEAKED) {
+            String v = saved.optString(key, "null");
+            // Only plain values go back into the shell command.
+            if (v.equals("null") || !v.matches("[\\w.\\-]+")) adb.shell("settings delete " + key);
+            else adb.shell("settings put " + key + " " + v);
+        }
+        s.remove("saved");
+        s.remove("dnsFailingSince");
+        save(c, s);
+        adb.shell("appops set " + PKG + " ACTIVATE_VPN default");
+    }
+
+    private static void setDns(Adb adb, boolean on) throws IOException {
+        if (on) {
+            adb.shell("settings put global private_dns_specifier " + AD_DNS);
+            adb.shell("settings put global private_dns_mode hostname");
+        } else {
+            adb.shell("settings put global private_dns_mode off");
+        }
+    }
+
+    // MARK: - Ad-blocking DNS
+
+    /** The ad-blocking DNS switch (Настройки экрана → Блокировка рекламы). On by default; kept in the state file. */
+    static boolean adBlock(Context c) {
+        return state(c).optBoolean("adBlock", true);
+    }
+
+    /** Asks the main process to turn the ad-blocking DNS on or off (the settings screen calls this). */
+    static void requestAdBlock(Context c, boolean on) {
+        ModeJob.schedule(c, ModeJob.DNS, on ? "on" : "off", 0);
+    }
+
+    /** Allows this app's VPN (no prompt) and starts it in the given mode (the VPN button, before the switch). */
+    static void requestVpn(Context c, boolean wholeTv) {
+        ModeJob.schedule(c, ModeJob.VPN, wholeTv ? "whole" : "youtube", 0);
+    }
+
+    static void allowVpnNow(Context app, boolean wholeTv) {
+        synchronized (RUN) {
+            try (Adb adb = Adb.connect(app, 10_000, null)) {
+                adb.shell("appops set " + PKG + " ACTIVATE_VPN allow");
+            } catch (Exception e) {
+                notice(app, "Не удалось включить VPN: " + e.getMessage());
+                return;
+            }
+        }
+        Vpn.setWholeTv(app, wholeTv);
+    }
+
+    static void setAdBlockNow(Context app, boolean on) {
+        synchronized (RUN) {
+            try {
+                JSONObject s = state(app);
+                s.put("adBlock", on);
+                s.remove("dnsFailingSince");
+                save(app, s);
+                if (!FREE.equals(s.optString("mode"))) return;
+                try (Adb adb = Adb.connect(app, 10_000, null)) {
+                    setDns(adb, on);
+                }
+            } catch (Exception e) {
+                notice(app, "Не удалось переключить блокировку рекламы: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * The guard (DnsGuard): if names stop resolving while the internet itself works, the DNS server is down. After
+     * DnsGuard.GRACE_MS of that, turn the blocking off so the TV keeps working, and say so.
+     */
+    static void checkDnsNow(Context app) {
+        synchronized (RUN) {
+            JSONObject s = state(app);
+            if (!FREE.equals(s.optString("mode")) || !s.optBoolean("adBlock", true)) return;
+            if (!internetUp()) return;   // no internet at all: not the DNS server's fault
+            String mode = android.provider.Settings.Global.getString(app.getContentResolver(), "private_dns_mode");
+            boolean resolves = resolves();
+            long now = System.currentTimeMillis(), since = s.optLong("dnsFailingSince", 0);
+            try {
+                if (resolves || !"hostname".equals(mode)) {
+                    if (since != 0) { s.remove("dnsFailingSince"); save(app, s); }
+                    return;
+                }
+                if (since == 0) {
+                    s.put("dnsFailingSince", now);
+                    save(app, s);
+                    ModeJob.schedule(app, ModeJob.DNS_CHECK, null, DnsGuard.GRACE_MS + 5_000);
+                    return;
+                }
+                if (!DnsGuard.shouldTurnOff(mode, false, now - since)) {
+                    ModeJob.schedule(app, ModeJob.DNS_CHECK, null, DnsGuard.GRACE_MS + 5_000 - (now - since));
+                    return;
+                }
+                try (Adb adb = Adb.connect(app, 10_000, null)) {
+                    setDns(adb, false);
+                }
+                s.put("adBlock", false);
+                s.remove("dnsFailingSince");
+                save(app, s);
+                notice(app, "Блокировка рекламы выключена: DNS не отвечает. Включить снова: Настройки экрана.");
+                AppLog.w("ad-blocking DNS turned off: no answers for " + (now - since) / 1000 + " s");
+            } catch (Exception e) {
+                AppLog.w("DNS check: " + e.getMessage());
+            }
+        }
+    }
+
+    /** A plain TCP connection to Cloudflare's IP (no DNS involved). */
+    private static boolean internetUp() {
+        try (java.net.Socket socket = new java.net.Socket()) {
+            socket.connect(new java.net.InetSocketAddress("1.1.1.1", 443), 5_000);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /** Whether the system resolver (through Private DNS) answers. */
+    private static boolean resolves() {
+        try {
+            java.net.InetAddress.getByName("connectivitycheck.gstatic.com");
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /** Whether the recorded home screen (or Google TV's) is still on the TV, for this user. */
+    private static boolean originalHomeInstalled(Adb adb, String home) throws IOException {
+        Set<String> installed = new HashSet<>();
+        for (String line : adb.shell("pm list packages").split("\n")) installed.add(line.trim());
+        String pkg = packageOf(home);
+        return (pkg != null && installed.contains("package:" + pkg))
+                || installed.contains("package:" + packageOf(GOOGLE_HOME));
     }
 
     /** The recorded home screen; without one, Google TV's; without that, the system picks (we leave the role). */
@@ -313,6 +460,11 @@ final class HomeMode {
             try (Adb adb = Adb.connect(app, 10_000, null)) {
                 JSONObject s = state(app);
                 String home = originalHome(s);
+                if (!originalHomeInstalled(adb, home)) {
+                    // No factory home screen left: a bare system screen would be worse than retrying ours.
+                    notice(app, "Главный экран упал 3 раза подряд, но заводского больше нет: оставил новый.");
+                    return;
+                }
                 adb.shell("pm enable " + GOOGLE_SETUP);
                 restoreHome(adb, home);
                 String homePkg = packageOf(home);
@@ -322,8 +474,7 @@ final class HomeMode {
                 }
                 s.put("homeReverted", true).put("disabled", kept);
                 save(app, s);
-                notice(app, Ui.tr("O Início do Free My TV caiu 3 vezes seguidas; voltei para o Início original.",
-                        "Free My TV's home screen crashed 3 times in a row; I switched back to the original one."));
+                notice(app, "Новый главный экран упал 3 раза подряд; вернул заводской.");
                 adb.shell("am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             } catch (Exception e) {
                 AppLog.w("could not give the home screen back: " + e.getMessage());
@@ -359,7 +510,7 @@ final class HomeMode {
                 }
                 Set<String> disabled = new HashSet<>(stringList(s, "disabled"));
                 for (String pkg : sorted(wanted)) {
-                    if (PROTECTED.contains(pkg) || !present.contains(pkg) || owners.contains(pkg)) continue;
+                    if (Debloat.PROTECTED.contains(pkg) || !present.contains(pkg) || owners.contains(pkg)) continue;
                     if (disabledNow.contains(pkg)) {
                         disabled.add(pkg);
                         continue;
@@ -371,24 +522,24 @@ final class HomeMode {
                 }
                 if (!reverted && !homeHolder(adb).contains(PKG)) {
                     adb.shell("cmd package set-home-activity " + HOME_ACTIVITY);
-                    fixed.add(Ui.tr("o Início", "the home screen"));
+                    fixed.add("главный экран");
                 }
                 if (!adb.shell("settings get secure screensaver_components").contains(DREAM)) {
                     adb.shell("settings put secure screensaver_components " + DREAM);
-                    fixed.add(Ui.tr("a tela de descanso", "the screensaver"));
+                    fixed.add("заставку");
                 }
                 JSONObject latest = state(app);
                 latest.put("disabled", new JSONArray(sorted(disabled)));
                 save(app, latest);
             } catch (Exception e) {
-                notice(app, Ui.tr("Não consegui conferir o Free My TV: ", "Couldn't check Free My TV: ") + e.getMessage());
+                notice(app, "Не удалось проверить новый экран: " + e.getMessage());
                 return;
             }
             if (!fixed.isEmpty()) {
-                notice(app, (updated ? Ui.tr("A atualização da TV religou ", "The TV update turned back on ")
-                        : Ui.tr("Desliguei o que faltava: ", "Turned off what was missing: ")) + String.join(", ", fixed) + ".");
+                notice(app, (updated ? "Обновление ТВ снова включило "
+                        : "Отключил недостающее: ") + String.join(", ", fixed) + ".");
             } else if (updated) {
-                notice(app, Ui.tr("A TV foi atualizada; o Free My TV continua igual.", "The TV was updated; Free My TV is still on."));
+                notice(app, "ТВ обновился; новый экран по-прежнему включён.");
             }
         }
     }
@@ -405,8 +556,8 @@ final class HomeMode {
         if (setupHome) out.add(GOOGLE_SETUP);
         String dreamPkg = packageOf(dream);
         if (dreamPkg != null && !dreamPkg.equals(PKG) && !dreamPkg.equals(homePkg)) out.add(dreamPkg);
-        out.addAll(Arrays.asList(DEBLOAT));
-        if (Config.DISABLE_ASSISTANT) out.addAll(Arrays.asList(ASSISTANT));
+        out.addAll(Arrays.asList(Debloat.DEBLOAT));
+        if (Config.DISABLE_ASSISTANT) out.addAll(Arrays.asList(Debloat.ASSISTANT));
         return out;
     }
 
@@ -487,9 +638,8 @@ final class HomeMode {
     }
 
     private static Adb connect(Context c, JSONObject s) throws IOException {
-        busy(c, Ui.tr("Conectando…", "Connecting…"));
-        Adb adb = Adb.connect(c, 120_000, () -> busy(c, Ui.tr("Aceite o aviso “Permitir depuração” na TV (marque “Sempre permitir”).",
-                "Accept “Allow USB debugging?” on the TV (tick “Always allow”).")));
+        busy(c, "Подключение…");
+        Adb adb = Adb.connect(c, 120_000, () -> busy(c, "Примите на ТВ запрос «Разрешить отладку по USB?» (отметьте «Всегда разрешать»)."));
         if (!s.optBoolean("adbAuthorized")) {
             JSONObject latest = state(c);
             try { latest.put("adbAuthorized", true); } catch (JSONException ignored) {}

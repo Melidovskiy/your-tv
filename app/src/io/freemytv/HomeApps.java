@@ -57,6 +57,8 @@ final class HomeApps {
     static final int APP = 0, LIVE_TV = 1, INPUT = 2, ALL_APPS = 3, SETTINGS = 4, ANDROID_SETTINGS = 5;
     /** The "HDMI Inputs" button: opens the bottom drawer on the inputs (the home screen handles it). */
     static final int INPUTS = 7;
+    /** The corner buttons: VPN (the whole TV through the server, or YouTube only) and Wi-Fi (Android's Wi-Fi settings). */
+    static final int VPN = 8, WIFI = 9;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -79,19 +81,23 @@ final class HomeApps {
      * (YouTube); empty = the art's colors as they are. Last, a visual size tweak for the logo. Edit freely.
      */
     private static final String[][] SHELF = {
-        {"netflix", "Netflix", "com.netflix.ninja", "E50914", "", "1"},
         {"youtube", "YouTube", "com.google.android.youtube.tv", "FF0033", "play", "1"},
-        {"prime", "Prime Video", "com.amazon.amazonvideo.livingroom", "1A98FF", "tint", "0.96"},
-        {"disney", "Disney+", "com.disney.disneyplus", "1838C8", "", "1"},
-        {"max", "Max", "com.wbd.stream", "6C3BE0", "", "1.32"},
-        {"appletv", "Apple TV", "com.apple.atve.androidtv.appletv", "B8BCC6", "", "1.1"},
-        {"hulu", "Hulu", "com.hulu.livingroomplus", "1CE783", "", "1"},
-        {"paramount", "Paramount+", "com.cbs.ott", "0064FF", "", "1"},
-        {"peacock", "Peacock", "com.peacocktv.peacockandroid", "6E55DC", "", "1"},
-        {"globoplay", "Globoplay", "com.globo.globotv", "FF5A1F", "tint", "1"},
-        {"spotify", "Spotify", "com.spotify.tv.android", "1DB954", "", "1"},
+        {"hdrezka", "HDrezka", "to.pda.falcofemoralis.hdrezkaapp", "2D2D2D", "", "1"},
+        {"okko", "Okko", "tv.okko.androidtv", "6C3BFF", "", "1"},
+        {"kinopoisk", "Кинопоиск", "ru.kinopoisk.tv", "FF6600", "", "1"},
+        {"wink", "Wink", "ru.rt.video.app.tv", "FF7A00", "", "1"},
+        {"kion", "KION", "ru.mts.mtstv", "FF0032", "", "1"},
+        {"vk", "VK Видео", "com.vk.tv", "0077FF", "", "1"},
+        {"rutube", "RUTUBE", "ru.rutube.app", "00E0C6", "", "1"},
     };
-    static final int MAX_SHELF = 8;
+    /**
+     * Shelf apps opened through another app when it is installed: the YouTube tile keeps YouTube's logo but opens
+     * TizenTube (YouTube's own TV interface without ads; its traffic goes through the VPN).
+     */
+    static final java.util.Map<String, String> LAUNCH_INSTEAD = java.util.Collections.singletonMap(
+            "com.google.android.youtube.tv", "io.gh.reisxd.tizentube.cobalt");
+    /** Six, so each app's full TV banner shows large (16:9, ~250 px wide); the rest are in "Все приложения". */
+    static final int MAX_SHELF = 6;
     /** Live TV apps of some brands (the antenna's channels open through the standard Android request first). */
     static final String[] LIVE_TV_APPS = {"com.tcl.tv", "com.google.android.tv", "com.mediatek.wwtv.tvcenter", "com.sony.dtv.tvx"};
     /** Kept out of "All Apps" (only hidden, still installed). Add the ones your TV shows that you never use. */
@@ -139,6 +145,20 @@ final class HomeApps {
             }
             items.add(it);
         }
+        // Then every other TV app, by name: the dock scrolls to them (→ past the last favorite).
+        Set<String> seen = new HashSet<>();
+        for (Item it : items) seen.add(it.pkg);
+        seen.addAll(LAUNCH_INSTEAD.values());   // TizenTube: the YouTube tile already opens it
+        seen.addAll(Prefs.dockHidden());         // hidden in the dock editor
+        for (String[] more : shelfCandidates(c)) {
+            if (!seen.add(more[0])) continue;
+            Item it = new Item();
+            it.kind = APP;
+            it.pkg = it.key = more[0];
+            it.label = more[1];
+            it.tile = appTile(c, null, more[0], 0);
+            items.add(it);
+        }
         return items;
     }
 
@@ -179,10 +199,10 @@ final class HomeApps {
     static List<Item> shortcuts(Context c) {
         List<Item> items = new ArrayList<>();
         if (liveTv(c) != null) {
-            items.add(shortcut(LIVE_TV, "live", Ui.tr("TV ao Vivo", "Live TV"), "tv"));
+            items.add(shortcut(LIVE_TV, "live", "Эфирное ТВ", "tv"));
         }
         items.addAll(inputs(c));
-        items.add(shortcut(ALL_APPS, "all", Ui.tr("Todos os Apps", "All Apps"), "apps"));
+        items.add(shortcut(ALL_APPS, "all", "Все приложения", "apps"));
         return items;
     }
 
@@ -202,15 +222,15 @@ final class HomeApps {
 
     /** Free My TV settings, in the corner of the home screen. */
     static Item settings() {
-        return shortcut(SETTINGS, "settings", Ui.tr("Ajustes", "Settings"), "settings");
+        return shortcut(SETTINGS, "settings", "Настройки", "settings");
     }
 
     /** Shortcuts in the bottom drawer. */
     static List<Item> drawerShortcuts() {
         List<Item> items = new ArrayList<>();
-        items.add(shortcut(ALL_APPS, "all", Ui.tr("Todos os Apps", "All Apps"), "apps"));
-        items.add(shortcut(SETTINGS, "settings", Ui.tr("Ajustes do Início", "Home Settings"), "settings"));
-        items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("Ajustes da TV", "TV Settings"), "tv_settings"));
+        items.add(shortcut(ALL_APPS, "all", "Все приложения", "apps"));
+        items.add(shortcut(SETTINGS, "settings", "Настройки экрана", "settings"));
+        items.add(shortcut(ANDROID_SETTINGS, "tv-settings", "Настройки ТВ", "tv_settings"));
         return items;
     }
 
@@ -227,7 +247,7 @@ final class HomeApps {
     /** For the bottom drawer: live TV and every HDMI input (the ones with no device are shown dimmed). */
     static List<Item> allInputs(Context c) {
         List<Item> items = new ArrayList<>();
-        if (liveTv(c) != null) items.add(shortcut(LIVE_TV, "live", Ui.tr("TV ao Vivo", "Live TV"), "tv"));
+        if (liveTv(c) != null) items.add(shortcut(LIVE_TV, "live", "Эфирное ТВ", "tv"));
         items.addAll(inputs(c, true));
         return items;
     }
@@ -336,7 +356,7 @@ final class HomeApps {
             items.add(it);
         }
         Collections.sort(items, (a, b) -> a.label.toLowerCase(Locale.ROOT).compareTo(b.label.toLowerCase(Locale.ROOT)));
-        items.add(special(c, SETTINGS, "freemytv-settings", "Free My TV", "sparkles"));
+        items.add(special(c, SETTINGS, "freemytv-settings", "Главный экран", "sparkles"));
         return items;
     }
 
@@ -351,7 +371,9 @@ final class HomeApps {
         Intent intent;
         switch (it.kind) {
             case APP:
-                intent = launchIntent(a.getPackageManager(), it.pkg);
+                String instead = LAUNCH_INSTEAD.get(it.pkg);
+                intent = instead == null ? null : launchIntent(a.getPackageManager(), instead);
+                if (intent == null) intent = launchIntent(a.getPackageManager(), it.pkg);
                 if (intent != null) intent.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
                 break;
             case LIVE_TV:
@@ -365,6 +387,9 @@ final class HomeApps {
                 break;
             case ANDROID_SETTINGS:
                 intent = new Intent(Settings.ACTION_SETTINGS);
+                break;
+            case WIFI:
+                intent = new Intent(Settings.ACTION_WIFI_SETTINGS);
                 break;
             default:
                 return false;

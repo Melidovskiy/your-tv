@@ -1,13 +1,12 @@
 # Free My TV: notes for Claude
 
-A home screen for Google TV and Android TV that replaces the stock one, plus a settings app that switches between
-Free My TV and the TV's original home screen. A plain Android app in Java, built without Gradle by `build.sh`.
-LG TVs (webOS) and Samsung TVs (Tizen) get the same home screen as a web app: `web/`, packed by `webos/` and `tizen/`
-(see below).
-The website (freemytv.io) is in `docs/`: static HTML, CSS and JS, no build step. A push to `main` that changes it
-publishes it to GitHub Pages (`.github/workflows/pages.yml`). `docs/index.html` (English) and `docs/pt/index.html`
-(Brazilian Portuguese) are the same page in two languages, so change both; visitors from Brazil land on the
-Portuguese one by themselves, and the PT/EN switch in the menu is remembered.
+A Russian fork of Free My TV for one Xiaomi Mi TV 4S (MiTV-MSSP1, Android 9): a home screen that replaces the stock
+one, plus a settings app that switches between it and the TV's original home screen. A plain Android app in Java,
+built without Gradle by `build.sh`. The LG, Samsung and website parts of upstream are not in this fork.
+
+Building on Windows: Git Bash, the Android SDK in `%LOCALAPPDATA%\Android\Sdk` (build-tools 34, platform 34) and a
+JDK 17 unpacked in `%LOCALAPPDATA%` (`jdk-17*`); `build.sh` finds both. d8 from build-tools 34 fails on classes from
+much newer JDKs.
 
 The person you're helping may not be technical. Keep it short and friendly, say what you're about to do on their TV
 before you do it, and let them do the taps on the TV.
@@ -46,65 +45,6 @@ before you do it, and let them do the taps on the TV.
    `adb shell cmd wifi forget-network <id>`.
 9. **Check:** `adb logcat -s FreeMyTV` shows what the switch did.
 
-## Installing it on an LG TV (webOS)
-
-On LG it's an app, installed through LG's Developer Mode, and it changes nothing else on the TV: LG's home screen
-stays, and Free My TV opens with a long press of a number key.
-
-1. **Ask** for the TV's IP address and their city, if they didn't say. Tools: Python 3 and OpenSSH (`ssh`,
-   `ssh-keygen`), already on macOS, Linux and Windows 10+.
-2. **On the TV** (they do it): LG Content Store → *Developer Mode* → sign in with a free LG developer account
-   (webostv.developer.lge.com) → *Dev Mode Status* on (the TV restarts) → *Key Server* on. It shows the IP and a
-   passphrase.
-3. **Settings:** the same `config.properties` as on Android (the first `python3 webos/build.py` creates it). The
-   TMDB key rules above apply.
-4. **Build:** `python3 webos/build.py` must end with `Built FreeMyTV-webos.ipk`.
-5. **Install:** the first time needs the TV's passphrase, typed by them: ask them to run
-   `python3 webos/install.py <IP>` in their own terminal (yours can't answer its prompt, and the passphrase doesn't go
-   in the chat). It keeps the unlocked key in `~/.ssh/freemytv_webos_<IP>`, so later updates run from your terminal
-   with the same command.
-6. **Tell them:** while Free My TV is open, holding a number key pins it to that key. Developer Mode lasts about 40
-   days; *EXTEND* in that app renews it (if it runs out, the TV removes developer apps, and installing again brings it
-   back). `--uninstall` removes Free My TV.
-
-## Installing it on a Samsung TV (Tizen)
-
-On Samsung it's an app too (2017 and newer, Tizen 3+), installed through Samsung's Developer Mode; Samsung's home
-screen stays. Two ways:
-
-- **The release, no tools:** TizenBrew Installer (github.com/reisxd/TizenBrewInstaller) installs the latest GitHub
-  release when they type `simbasjungles/free-my-tv`, and on 2023+ TVs signs it with their Samsung account. That build
-  has no TMDB key (no picks) and takes the city from the TV's time zone. Walk them through the README's steps.
-- **Their own build** (their city, their TMDB key), below.
-
-1. **Ask** for the TV's IP address and their city, if they didn't say.
-2. **On the TV** (they do it): *Apps* → type `1 2 3 4 5` on the remote → *Developer mode* on, *Host PC IP* = this
-   computer's IP → restart the TV.
-3. **Tools:** Samsung's Tizen tools, the `tizen` and `sdb` commands (Tizen Studio's CLI, or Samsung's Claude Code
-   plugin `tizen-sdk-skills` from github.com/Samsung/tizen-agent-skills, which installs them and makes Samsung
-   certificates). `tizen` runs on Java; Samsung's `sdb` for macOS is an Intel binary, so on Apple Silicon it needs
-   Rosetta (`softwareupdate --install-rosetta`): ask them first.
-4. **Certificate, once:** 2023+ TVs (Tizen 7+) need a Samsung certificate, made with their Samsung account for this TV
-   (its DUID): the plugin's Samsung profile opens the browser for them to sign in, or Tizen Studio's Certificate
-   Manager does it. 2017-2022 TVs take a Tizen certificate (`tizen certificate`, then `tizen security-profiles add`).
-   Certificate passwords are theirs: they type them in their own terminal, never in the chat.
-5. **Settings:** the same `config.properties`; the TMDB key rules above apply.
-6. **Build and sign:** `python3 tizen/build.py --sign <profile>` must end with `Built FreeMyTV-tizen.wgt (...,
-   signed with "<profile>")`.
-7. **Install:** `sdb connect <IP>`, then `tizen install -n FreeMyTV-tizen.wgt -t <serial from sdb devices>` and
-   `tizen run -p FreeMyTVio.FreeMyTV -t <serial>` to open it. Updates need the same certificate: the TV refuses one
-   signed by another (`tizen uninstall -p FreeMyTVio.FreeMyTV -t <serial>` first).
-8. **Tell them:** *Autorun Last App* in the TV's settings (under Start Screen Options; where it is changes by year)
-   makes the TV turn on into Free My TV.
-
-## Releases
-
-TizenBrew Installer takes the first `.wgt` of the latest GitHub release, so every release carries
-`FreeMyTV-tizen.wgt`: built with `--generic` (no config.properties: no key, the city from the time zone) and signed
-with a Tizen certificate (`--sign`), which 2017-2022 TVs install as it is; on 2023+ TVs the installer signs it again
-with the person's Samsung certificate. Sign every release with the same author certificate: older TVs refuse an
-update signed by another. `python3 webos/build.py --generic` makes the LG `.ipk` that goes along.
-
 ## Adapting it to another TV
 
 Read first, change after. Read-only commands that tell you what the TV has:
@@ -119,15 +59,12 @@ adb shell pm list packages -s     # system apps (-3 for the ones they installed)
 
 Then, in the code:
 
-- `HomeMode.DEBLOAT`: add the brand's promo, demo, store-mode and telemetry apps, one comment per line. Only those.
-- `HomeMode.PROTECTED`: add the brand's system pieces: picture, sound, inputs and HDMI-CEC, the tuner and live TV,
+- `Debloat.DEBLOAT`: add the brand's promo, demo, store-mode and telemetry apps, one comment per line. Only those.
+- `Debloat.PROTECTED`: add the brand's system pieces: picture, sound, inputs and HDMI-CEC, the tuner and live TV,
   remote and Bluetooth pairing, setup, updates, system UI. When in doubt, protect it.
 - `HomeApps.SHELF`, `LIVE_TV_APPS` and `HIDDEN`: the shelf apps, the brand's live TV app, apps to hide from All Apps.
 - Build, install, have them switch on the TV, read `adb logcat -s FreeMyTV`, then have them switch back to
   *Original* once and confirm everything returned.
-
-LG and Samsung: the web app above. Other TVs that don't run Google TV or Android TV: the way is a Google TV streamer on
-HDMI (Chromecast with Google TV, Google TV Streamer, onn 4K, NVIDIA Shield). Set Free My TV up on the streamer.
 
 **Uninstalled while in Free My TV mode?** The apps it turned off stay off. Bring them back with
 `adb shell pm enable <package>` (the `DEBLOAT` list and the stock home screen), then
@@ -136,7 +73,7 @@ HDMI (Chromecast with Google TV, Google TV Streamer, onn 4K, NVIDIA Shield). Set
 
 ## The code
 
-- Java 8 language level, minSdk 28 (Android 9), targetSdk 33. No Gradle, no libraries: only the Android SDK.
+- Java 8 language level, minSdk 28 (Android 9), targetSdk 33. No Gradle; the only library is the Xray core.
   Android 9 has no RenderNode (`Recording` wraps it, with a Picture there) and no `cmd role`. On Android 9 to 11
   (`Ui.LEGACY`) the home screen skips the GPU layers, draws blurred shadows from cached bitmaps (`Shadows`) and
   rounds images with a shader instead of clipPath: their GPUs (a Mi Box 3's Mali-450) choked on those.
@@ -149,23 +86,20 @@ HDMI (Chromecast with Google TV, Google TV Streamer, onn 4K, NVIDIA Shield). Set
   Android 13+, with a fallback for 9 to 12). Keep it at 60 fps: no allocations in `onDraw`, no work on the UI thread.
 - `HomeMode` runs every switch as a background job (`ModeJob`) in the main process; the UI is in the `:home`
   process. `Watchdog` goes back to the stock home screen after 3 crashes in 5 minutes.
-- On-screen text: `Ui.tr("pt", "en")`, with the Spanish in `Spanish.java` (keyed by the English); text built at
-  runtime uses `Ui.tr(pt, en, es)`. Add all three. Comments in English, short, only where the why
-  isn't obvious.
+- On-screen text is Russian only, written directly in the code; plurals and weekdays through `Ru`. Comments in
+  English, short, only where the why isn't obvious.
+- Pure classes (`Ru`, `Forecast`, `Debloat`, `DnsGuard`, `VlessLink`, `XrayConfig`, `VpnRoutes`) have host tests in
+  `tests/`, run by `./test.sh`. TV checks: `tools/shot.sh <name>` (screenshot) and `tools/ram.sh`.
+- The VPN: `TunService` (main process) runs Xray (`libs/libv2ray.aar`, armeabi-v7a only) on Android's VPN TUN;
+  `VpnRoutes` lists the YouTube apps it always carries; `Vpn` is the state other code reads. This TV's VPN consent
+  dialog closes by itself: the permission is granted through the in-TV ADB (`appops ... ACTIVATE_VPN allow`).
+- Debloat lists live in `Debloat.java`. If the switched-off apps were uninstalled for good (`pm uninstall --user 0`),
+  *Заводской* and the watchdog keep the new home, since no factory home is installed.
 - Settings come from `config.properties` through the generated `out/gen/io/freemytv/Config.java` (never edit that).
   What the person changes on the TV (`Prefs`: Home Settings, Shelf, Remote Buttons) wins over those first values.
 - The remote's app buttons (`RemoteKeys`, `RemoteKeyService`) use TCL's key codes: they run only on TCL TVs, the
   service is on only in Free My TV mode, and *Original* takes it out of the enabled accessibility services.
 - After any change, `./build.sh` must end with `Built FreeMyTV.apk`.
-- LG and Samsung (`web/`): plain ES5 JavaScript and CSS without variables, grid or backdrop-filter, since older TVs
-  (webOS 3 and 4, Tizen 3) run a Chromium from 2015 to 2017; only transform and opacity animate. `web/tv.js` is the
-  TV's side: on LG, Luna (`listLaunchPoints`, `launch`, the inputs); on Samsung, `tizen.application` (`getAppsInfo`,
-  `launch`), the `VIDEOSOURCE` property and `tizen.tvwindow.setSource` for the inputs, then Samsung's viewer
-  (`org.tizen.tv-viewer`) to show them. `web/home.js` follows `HomeView`'s layout and behavior, so a design change on
-  Android belongs there too. Text: `tr(pt, en, es)`. Built without a city (`--generic`), `web/zones.js`
-  (`tools/make_zones.py`, from the tz database) turns the TV's time zone into the city, the currency and the region.
-  `tools/webapp.py` is what both builds share. Preview: `python3 webos/build.py --preview` (or `tizen/build.py`), then
-  open `out/webos/index.html` in a browser (a stand-in lists sample apps).
 
 ## Always
 

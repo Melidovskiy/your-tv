@@ -6,8 +6,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- The Wi-Fi network's name on the home screen. -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- After the TV boots (and after a TV update), checks that Free My TV mode is still as you left it. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- The VPN to your server runs as a foreground service (TunService). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <!-- Android 11+: without this list the app can't "see" the other apps (getLeanbackLaunchIntentForPackage
          returns null). The shelf and streaming apps, the live TV apps and, through the <intent>, every TV app
@@ -43,7 +47,7 @@
 
     <application
         android:name=".App"
-        android:label="Free My TV"
+        android:label="@string/app_name"
         android:icon="@drawable/icon"
         android:banner="@drawable/banner"
         android:allowBackup="false"
@@ -54,7 +58,7 @@
             android:name=".SettingsActivity"
             android:process=":home"
             android:exported="true"
-            android:label="Free My TV"
+            android:label="@string/app_name"
             android:launchMode="singleTask"
             android:taskAffinity="io.freemytv.settings"
             android:excludeFromRecents="true"
@@ -74,7 +78,7 @@
             android:name=".HomeActivity"
             android:process=":home"
             android:exported="true"
-            android:label="Free My TV"
+            android:label="@string/app_name"
             android:launchMode="singleTask"
             android:taskAffinity=""
             android:stateNotNeeded="true"
@@ -96,7 +100,7 @@
             android:process=":home"
             android:enabled="@bool/dream_in_home"
             android:exported="true"
-            android:label="Free My TV"
+            android:label="@string/app_name"
             android:permission="android.permission.BIND_DREAM_SERVICE">
             <intent-filter>
                 <action android:name="android.service.dreams.DreamService" />
@@ -109,7 +113,7 @@
             android:name=".ScreensaverAlone"
             android:enabled="@bool/dream_alone"
             android:exported="true"
-            android:label="Free My TV"
+            android:label="@string/app_name"
             android:permission="android.permission.BIND_DREAM_SERVICE">
             <intent-filter>
                 <action android:name="android.service.dreams.DreamService" />
@@ -128,7 +132,7 @@
             android:name=".RemoteKeyService"
             android:process=":home"
             android:exported="true"
-            android:label="Free My TV"
+            android:label="@string/app_name"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
@@ -136,6 +140,16 @@
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/remote_key_service" />
+        </service>
+
+        <!-- The VPN (main process). Only the system can bind it (BIND_VPN_SERVICE). -->
+        <service
+            android:name=".TunService"
+            android:exported="true"
+            android:permission="android.permission.BIND_VPN_SERVICE">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
         </service>
 
         <receiver

@@ -13,7 +13,8 @@ import android.os.PersistableBundle;
  * the switch finishes, even with the screen showing something else.
  */
 public class ModeJob extends JobService {
-    static final String APPLY = "apply", VERIFY = "verify", REVERT = "revert", MEMORY = "memory", REMOTE = "remote";
+    static final String APPLY = "apply", VERIFY = "verify", REVERT = "revert", MEMORY = "memory", REMOTE = "remote",
+            DNS = "dns", DNS_CHECK = "dnscheck", VPN = "vpn";
 
     @Override public boolean onStartJob(JobParameters params) {
         PersistableBundle extras = params.getExtras();
@@ -28,6 +29,9 @@ public class ModeJob extends JobService {
                     case REVERT: HomeMode.revertHomeNow(app); break;
                     case MEMORY: HomeMode.measureMemoryNow(app, mode); break;
                     case REMOTE: HomeMode.ensureRemoteServiceNow(app); break;
+                    case DNS: HomeMode.setAdBlockNow(app, "on".equals(mode)); break;
+                    case DNS_CHECK: HomeMode.checkDnsNow(app); break;
+                    case VPN: HomeMode.allowVpnNow(app, "whole".equals(mode)); break;
                     default: break;
                 }
             } catch (Throwable t) {
@@ -54,5 +58,16 @@ public class ModeJob extends JobService {
         if (delayMs > 0) job.setMinimumLatency(delayMs);
         job.setOverrideDeadline(delayMs + 2_000);
         scheduler.schedule(job.build());
+    }
+
+    /** A repeating job (its own id range, so a one-off of the same action doesn't replace it). */
+    static void schedulePeriodic(Context c, String action, long periodMs) {
+        JobScheduler scheduler = c.getSystemService(JobScheduler.class);
+        if (scheduler == null) return;
+        PersistableBundle extras = new PersistableBundle();
+        extras.putString("action", action);
+        extras.putString("mode", "");
+        scheduler.schedule(new JobInfo.Builder(3000 + Math.abs(action.hashCode() % 1000), new ComponentName(c, ModeJob.class))
+                .setExtras(extras).setPeriodic(periodMs).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).build());
     }
 }
