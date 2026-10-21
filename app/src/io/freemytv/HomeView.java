@@ -119,7 +119,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final long NIGHT_MS = 2000;
     private boolean nightTarget, duskTarget;
     private float night, nightFrom;     // 0 = day, 1 = night
-    /** Evening: the glass and the buttons a little darker (0 = no, 1 = yes); moves with `night`. */
+    /** Evening: the glass, the buttons and the wallpaper a little darker (0 = no, 1 = yes); moves with `night`. */
     private float dusk, duskFrom;
     private long nightAt;
     private final int[] glassNight = new int[Backdrop.GW * Backdrop.GH], frostNight = new int[Backdrop.FW * Backdrop.FH];
@@ -2334,10 +2334,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (b.image != null) {
             // The wallpaper, sharp; a little darker in the dark look so white text stays easy to read.
             drawImage(c, b.image, alpha);
-            // Not darker in the evening: the evening and night photos are darker themselves.
-            if (night > 0.001f) {
+            if (night > 0.001f || dusk > 0.001f) {
                 fill.setShader(null);
-                fill.setColor(Ui.alpha(0xFF000000, 0.22f * night * Math.min(1, alpha)));
+                fill.setColor(Ui.alpha(0xFF000000, (0.22f * night + 0.2f * dusk) * Math.min(1, alpha)));
                 c.drawRect(screen, fill);
             }
             return;
