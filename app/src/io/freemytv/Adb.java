@@ -57,6 +57,7 @@ final class Adb implements Closeable {
     private final DataInputStream in;
     private final OutputStream out;
     private int nextLocalId = 1;
+    private boolean approved;   // authenticated (CNXN received)
 
     private Adb(Socket socket) throws IOException {
         this.socket = socket;
@@ -66,43 +67,75 @@ final class Adb implements Closeable {
 
     /** Connects and authenticates. If the TV doesn't know our key yet, waits up to `approvalMs` for you to accept. */
     static Adb connect(Context c, int approvalMs, Approval approval) throws IOException {
-        KeyPair keys = keys(c);
+        Adb adb = open(keys(c), true, approval);
+        if (adb.approved) return adb;
+        // Waiting for "Allow USB debugging?". Some TVs (the Mi TV 4A) save the key but never answer the waiting
+        // connection, so every few seconds a second one checks whether the key is known now.
+        long until = System.currentTimeMillis() + approvalMs;
+        try {
+            adb.socket.setSoTimeout(5_000);
+            while (true) {
+                try {
+                    Message m = adb.read();
+                    if (m.command == CNXN) {
+                        adb.approved = true;
+                        adb.socket.setSoTimeout(20_000);
+                        return adb;
+                    }
+                    throw new IOException(Lang.tr("ТВ отклонил ключ приложения", "the TV refused the app's key"));
+                } catch (SocketTimeoutException e) {
+                    Adb again = open(keys(c), false, null);
+                    if (again != null) return again;
+                    if (System.currentTimeMillis() > until) throw new IOException(Lang.tr("на ТВ не подтвердили «Разрешить отладку по USB?»", "\"Allow USB debugging?\" wasn't accepted on the TV"));
+                }
+            }
+        } finally {
+            if (!adb.approved) adb.close();
+        }
+    }
+
+    /**
+     * One connection. Returns it authenticated (`approved`); with `offer`, after sending our public key (the TV shows
+     * "Allow USB debugging?") returns it still waiting; without, returns null when the TV doesn't know our key.
+     */
+    private static Adb open(KeyPair keys, boolean offer, Approval approval) throws IOException {
         Socket s = new Socket();
         try {
             s.connect(new InetSocketAddress("127.0.0.1", 5555), 3000);
         } catch (IOException e) {
             s.close();
-            throw new IOException("на ТВ выключена отладка по USB");
+            throw new IOException(Lang.tr("на ТВ выключена отладка по USB", "USB debugging is off on the TV"));
         }
         s.setSoTimeout(10_000);
         Adb adb = new Adb(s);
         try {
             adb.send(CNXN, VERSION, MAX_DATA, "host::\0".getBytes(StandardCharsets.US_ASCII));
-            boolean signed = false, offeredKey = false;
+            boolean signed = false;
             while (true) {
                 Message m;
                 try {
                     m = adb.read();
                 } catch (SocketTimeoutException e) {
-                    throw new IOException(offeredKey ? "на ТВ не подтвердили «Разрешить отладку по USB?»" : "ADB на ТВ не отвечает");
+                    throw new IOException(Lang.tr("ADB на ТВ не отвечает", "the TV's ADB isn't answering"));
                 }
                 if (m.command == CNXN) {
                     s.setSoTimeout(20_000);
+                    adb.approved = true;
                     return adb;
                 }
-                if (m.command == STLS) throw new IOException("ТВ просит беспроводную отладку; включите отладку по USB");
-                if (m.command != AUTH || m.arg0 != AUTH_TOKEN) throw new IOException("неожиданный ответ ADB");
+                if (m.command == STLS) throw new IOException(Lang.tr("ТВ просит беспроводную отладку; включите отладку по USB", "the TV asks for wireless debugging; turn on USB debugging"));
+                if (m.command != AUTH || m.arg0 != AUTH_TOKEN) throw new IOException(Lang.tr("неожиданный ответ ADB", "unexpected ADB reply"));
                 if (!signed) {
                     adb.send(AUTH, AUTH_SIGNATURE, 0, sign(keys.getPrivate(), m.data));
                     signed = true;
-                } else if (!offeredKey) {
+                } else if (offer) {
                     // Unknown key: send the public one; the TV shows "Allow USB debugging?".
                     adb.send(AUTH, AUTH_RSAPUBLICKEY, 0, publicKeyBlob(keys.getPublic()));
-                    offeredKey = true;
                     if (approval != null) approval.waiting();
-                    s.setSoTimeout(approvalMs);
+                    return adb;
                 } else {
-                    throw new IOException("ТВ отклонил ключ приложения");
+                    adb.close();
+                    return null;
                 }
             }
         } catch (IOException e) {
@@ -126,7 +159,7 @@ final class Adb implements Closeable {
                 result.write(m.data);
                 send(OKAY, local, m.arg0, null);
             } else if (m.command == CLSE) {
-                if (remote == 0 && m.arg0 == 0) throw new IOException("ADB отклонил команду");
+                if (remote == 0 && m.arg0 == 0) throw new IOException(Lang.tr("ADB отклонил команду", "ADB refused the command"));
                 send(CLSE, local, m.arg0, null);
                 return result.toString("UTF-8");
             }

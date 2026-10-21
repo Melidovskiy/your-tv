@@ -86,9 +86,10 @@ Then, in the code:
   Android 13+, with a fallback for 9 to 12). Keep it at 60 fps: no allocations in `onDraw`, no work on the UI thread.
 - `HomeMode` runs every switch as a background job (`ModeJob`) in the main process; the UI is in the `:home`
   process. `Watchdog` goes back to the stock home screen after 3 crashes in 5 minutes.
-- On-screen text is Russian only, written directly in the code; plurals and weekdays through `Ru`. Comments in
+- On-screen text is in Russian and English, written in place as `Lang.tr("…", "…")`; plurals and weekdays through
+  `Lang` (Russian forms in `Ru`). The language follows the TV's unless chosen in Screen Settings. Comments in
   English, short, only where the why isn't obvious.
-- Pure classes (`Ru`, `Forecast`, `Debloat`, `DnsGuard`, `VlessLink`, `XrayConfig`, `VpnRoutes`) have host tests in
+- Pure classes (`Ru`, `Lang`, `Forecast`, `Debloat`, `DnsGuard`, `ProxyLink`, `XrayConfig`, `VpnRoutes`) have host tests in
   `tests/`, run by `./test.sh`. TV checks: `tools/shot.sh <name>` (screenshot) and `tools/ram.sh`.
 - The VPN: `TunService` (main process) runs Xray (`libs/libv2ray.aar`, armeabi-v7a only) on Android's VPN TUN;
   `VpnRoutes` lists the YouTube apps it always carries; `Vpn` is the state other code reads. This TV's VPN consent

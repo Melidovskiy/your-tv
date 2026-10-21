@@ -211,16 +211,16 @@ final class HomeData {
     /** The weather in words, from Open-Meteo's WMO code. */
     static String condition(int code, boolean day) {
         if (code < 0) return "";
-        if (code == 0) return day ? "Ясно" : "Ясная ночь";
-        if (code == 1) return "Малооблачно";
-        if (code == 2) return "Переменная облачность";
-        if (code == 3) return "Облачно";
-        if (code == 45 || code == 48) return "Туман";
-        if (code >= 51 && code <= 57) return "Морось";
-        if (code == 65 || code == 67 || code == 82) return "Сильный дождь";
-        if (code >= 71 && code <= 77 || code == 85 || code == 86) return "Снег";
-        if (code >= 95) return "Гроза";
-        return "Дождь";
+        if (code == 0) return day ? Lang.tr("Ясно", "Clear") : Lang.tr("Ясная ночь", "Clear night");
+        if (code == 1) return Lang.tr("Малооблачно", "Mostly clear");
+        if (code == 2) return Lang.tr("Переменная облачность", "Partly cloudy");
+        if (code == 3) return Lang.tr("Облачно", "Cloudy");
+        if (code == 45 || code == 48) return Lang.tr("Туман", "Fog");
+        if (code >= 51 && code <= 57) return Lang.tr("Морось", "Drizzle");
+        if (code == 65 || code == 67 || code == 82) return Lang.tr("Сильный дождь", "Heavy rain");
+        if (code >= 71 && code <= 77 || code == 85 || code == 86) return Lang.tr("Снег", "Snow");
+        if (code >= 95) return Lang.tr("Гроза", "Thunderstorm");
+        return Lang.tr("Дождь", "Rain");
     }
 
     /** Celsius or Fahrenheit (config.properties "temperature": C, F, or auto = Fahrenheit in the US). */
@@ -246,6 +246,6 @@ final class HomeData {
         long age = System.currentTimeMillis() - at;
         if (age < every * 2) return "";
         long minutes = age / 60_000;
-        return minutes < 60 ? minutes + " мин назад" : (minutes / 60) + " ч назад";
+        return minutes < 60 ? minutes + Lang.tr(" мин назад", " min ago") : (minutes / 60) + Lang.tr(" ч назад", " h ago");
     }
 }

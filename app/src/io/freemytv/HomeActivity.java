@@ -25,7 +25,7 @@ public class HomeActivity extends Activity {
             // Don't try to draw again: only show a notice while the main process restores the original home screen.
             HomeMode.requestRevertHome(this);
             TextView t = new TextView(this);
-            t.setText("Главный экран дал сбой.\nВозвращаю заводской главный экран…");
+            t.setText(Lang.tr("Главный экран дал сбой.\nВозвращаю заводской главный экран…", "The home screen crashed.\nGoing back to the TV's own home screen…"));
             t.setTextColor(Color.WHITE);
             t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
             t.setGravity(Gravity.CENTER);

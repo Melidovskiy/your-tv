@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
-/** The next days of Open-Meteo's daily forecast, and their labels ("Завтра", "Чт"). Pure Java + org.json (test.sh). */
+/** The next days of Open-Meteo's daily forecast, and their labels ("Завтра"/"Tomorrow", "Чт"/"Thu"). Pure Java + org.json (test.sh). */
 final class Forecast {
     private Forecast() {}
 
@@ -40,9 +40,9 @@ final class Forecast {
         Calendar day = parse(isoDate), next = parse(todayIso);
         next.add(Calendar.DAY_OF_MONTH, 1);
         if (day.get(Calendar.YEAR) == next.get(Calendar.YEAR) && day.get(Calendar.DAY_OF_YEAR) == next.get(Calendar.DAY_OF_YEAR)) {
-            return "Завтра";
+            return Lang.tr("Завтра", "Tomorrow");
         }
-        return Ru.weekdayShort(day.get(Calendar.DAY_OF_WEEK));
+        return Lang.weekdayShort(day.get(Calendar.DAY_OF_WEEK));
     }
 
     private static Calendar parse(String iso) {

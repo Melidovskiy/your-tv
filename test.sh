@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-PURE="Ru ProxyLink XrayConfig Forecast Debloat VpnRoutes DnsGuard"
+PURE="Ru Lang ProxyLink XrayConfig Forecast Debloat VpnRoutes DnsGuard"
 JSON=tests/lib/json.jar
 [ -f "$JSON" ] || { echo "Missing $JSON: run tools/fetch_libs.sh"; exit 1; }
 # java and javac are Windows programs under Git Bash: their class path separator is ';'.

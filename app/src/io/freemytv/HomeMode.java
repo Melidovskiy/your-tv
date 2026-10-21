@@ -170,18 +170,18 @@ final class HomeMode {
             Set<String> owners = wifiOwners(adb);
             boolean setupHome = setupIsHome(adb);
             if ((setupHome && owners.contains(GOOGLE_SETUP)) || owners.contains(packageOf(home))) {
-                throw new IOException("первичная настройка ТВ сохранила сеть Wi-Fi, и её отключение удалит эти сети. "
-                        + "В Настройках → Сеть и Интернет забудьте сеть и подключитесь заново (сети вне зоны действия "
-                        + "там не видны: их можно удалить с компьютера), затем попробуйте ещё раз.");
+                throw new IOException(Lang.tr("первичная настройка ТВ сохранила сеть Wi-Fi, и её отключение удалит эти сети. ", "the TV's first setup saved the Wi-Fi network, and turning it off would delete those networks. ")
+                        + Lang.tr("В Настройках → Сеть и Интернет забудьте сеть и подключитесь заново (сети вне зоны действия ", "In Settings → Network & Internet, forget the network and connect again (networks out of range ")
+                        + Lang.tr("там не видны: их можно удалить с компьютера), затем попробуйте ещё раз.", "don't show there: they can be removed from a computer), then try again."));
             }
             if (metrics(latest, ORIGINAL) == null && !home.isEmpty()) {
-                busy(c, "Измеряю заводской главный экран…");
+                busy(c, Lang.tr("Измеряю заводской главный экран…", "Measuring the TV's own home screen…"));
                 measureHomeTime(c, adb, ORIGINAL);
                 measureMemory(c, adb, ORIGINAL);
             }
-            busy(c, "Меняю главный экран и заставку…");
+            busy(c, Lang.tr("Меняю главный экран и заставку…", "Changing the home screen and screensaver…"));
             check(adb.shell("cmd package set-home-activity " + HOME_ACTIVITY), "Success",
-                    "Android не принял новый главный экран");
+                    Lang.tr("Android не принял новый главный экран", "Android didn't accept the new home screen"));
             adb.shell("settings put secure screensaver_components " + DREAM);
             applyTweaks(c, adb);
             List<String> targets = targets(home, dream, setupHome);
@@ -190,7 +190,7 @@ final class HomeMode {
             int done = 0;
             for (String pkg : targets) {
                 done++;
-                busy(c, "Отключаю приложения (" + done + "/" + targets.size() + ")…");
+                busy(c, Lang.tr("Отключаю приложения (", "Turning apps off (") + done + "/" + targets.size() + ")…");
                 if (Debloat.PROTECTED.contains(pkg) || !present.contains(pkg) || owners.contains(pkg)) continue;
                 String out = adb.shell("pm disable-user --user 0 " + pkg);
                 if (out.contains("disabled-user")) disabled.add(pkg);
@@ -209,15 +209,16 @@ final class HomeMode {
                 }
             }
             Vpn.start(c);
-            notice(c, "Новый экран включён: новый главный экран и заставка, отключено " + disabled.size() + " "
-                    + Ru.plural(disabled.size(), "приложение", "приложения", "приложений") + ".");
-            busy(c, "Измеряю новый экран…");
+            notice(c, Lang.tr("Новый экран включён: новый главный экран и заставка, отключено ",
+                    "The new home screen is on: new home screen and screensaver, turned off ") + disabled.size() + " "
+                    + Lang.plural(disabled.size(), "приложение", "приложения", "приложений", "app", "apps") + ".");
+            busy(c, Lang.tr("Измеряю новый экран…", "Measuring the new home screen…"));
             measureHomeTime(c, adb, FREE);
             done(c, null);
             adb.shell("am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             ModeJob.schedule(c, ModeJob.MEMORY, FREE, 120_000);
         } catch (Exception e) {
-            done(c, "Не удалось включить новый экран: " + e.getMessage());
+            done(c, Lang.tr("Не удалось включить новый экран: ", "Couldn't turn on the new home screen: ") + e.getMessage());
         }
     }
 
@@ -227,10 +228,10 @@ final class HomeMode {
             String home = originalHome(s);
             if (!originalHomeInstalled(adb, home)) {
                 // The factory home screens were uninstalled: there is nothing to go back to, so stay.
-                done(c, "Заводской главный экран удалён с ТВ: остаётся новый.");
+                done(c, Lang.tr("Заводской главный экран удалён с ТВ: остаётся новый.", "The TV's own home screen was removed: the new one stays."));
                 return;
             }
-            busy(c, "Включаю приложения обратно…");
+            busy(c, Lang.tr("Включаю приложения обратно…", "Turning apps back on…"));
             Set<String> toEnable = new HashSet<>(stringList(s, "disabled"));
             for (String pkg : targets(home, s.optString("originalDream", ""), true)) {
                 if (!Arrays.asList(Debloat.DEBLOAT).contains(pkg) && !Arrays.asList(Debloat.ASSISTANT).contains(pkg)) toEnable.add(pkg);
@@ -240,14 +241,14 @@ final class HomeMode {
             List<String> failed = new ArrayList<>();
             for (String pkg : sorted(toEnable)) {
                 done++;
-                busy(c, "Включаю приложения (" + done + "/" + toEnable.size() + ")…");
+                busy(c, Lang.tr("Включаю приложения (", "Turning apps on (") + done + "/" + toEnable.size() + ")…");
                 if (!present.contains(pkg)) continue;
                 // Checked: whatever didn't come back stays on the list (and in the notice); nothing disappears silently.
                 String out = adb.shell("pm enable " + pkg);
                 if (!out.contains("new state: enabled")) failed.add(pkg);
             }
             Vpn.stop(c);
-            busy(c, "Возвращаю заводской главный экран…");
+            busy(c, Lang.tr("Возвращаю заводской главный экран…", "Bringing back the TV's own home screen…"));
             boolean homeOk = restoreHome(adb, home);
             adb.shell("settings delete secure screensaver_components");
             restoreTweaks(c, adb);
@@ -261,20 +262,20 @@ final class HomeMode {
                     .put("disabled", new JSONArray(failed));
             save(c, s);
             if (failed.isEmpty() && homeOk) {
-                notice(c, "Заводской режим: главный экран, заставка и приложения как с завода.");
+                notice(c, Lang.tr("Заводской режим: главный экран, заставка и приложения как с завода.", "Original mode: home screen, screensaver and apps as they came."));
             } else {
                 List<String> problems = new ArrayList<>(failed);
-                if (!homeOk) problems.add("заводской главный экран");
-                notice(c, "Заводской режим, но не удалось включить: "
+                if (!homeOk) problems.add(Lang.tr("заводской главный экран", "the TV's own home screen"));
+                notice(c, Lang.tr("Заводской режим, но не удалось включить: ", "Original mode, but couldn't turn on: ")
                         + String.join(", ", problems) + ".");
             }
-            busy(c, "Измеряю заводской главный экран…");
+            busy(c, Lang.tr("Измеряю заводской главный экран…", "Measuring the TV's own home screen…"));
             measureHomeTime(c, adb, ORIGINAL);
             done(c, null);
             adb.shell("am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             ModeJob.schedule(c, ModeJob.MEMORY, ORIGINAL, 120_000);
         } catch (Exception e) {
-            done(c, "Не удалось вернуть заводской режим: " + e.getMessage());
+            done(c, Lang.tr("Не удалось вернуть заводской режим: ", "Couldn't go back to Original: ") + e.getMessage());
         }
     }
 
@@ -349,7 +350,7 @@ final class HomeMode {
             try (Adb adb = Adb.connect(app, 10_000, null)) {
                 adb.shell("appops set " + PKG + " ACTIVATE_VPN allow");
             } catch (Exception e) {
-                notice(app, "Не удалось включить VPN: " + e.getMessage());
+                notice(app, Lang.tr("Не удалось включить VPN: ", "Couldn't turn on the VPN: ") + e.getMessage());
                 return;
             }
         }
@@ -368,7 +369,7 @@ final class HomeMode {
                     setDns(adb, on);
                 }
             } catch (Exception e) {
-                notice(app, "Не удалось переключить блокировку рекламы: " + e.getMessage());
+                notice(app, Lang.tr("Не удалось переключить блокировку рекламы: ", "Couldn't switch ad blocking: ") + e.getMessage());
             }
         }
     }
@@ -406,7 +407,7 @@ final class HomeMode {
                 s.put("adBlock", false);
                 s.remove("dnsFailingSince");
                 save(app, s);
-                notice(app, "Блокировка рекламы выключена: DNS не отвечает. Включить снова: Настройки экрана.");
+                notice(app, Lang.tr("Блокировка рекламы выключена: DNS не отвечает. Включить снова: Настройки экрана.", "Ad blocking turned off: the DNS isn't answering. To turn it on again: Screen Settings."));
                 AppLog.w("ad-blocking DNS turned off: no answers for " + (now - since) / 1000 + " s");
             } catch (Exception e) {
                 AppLog.w("DNS check: " + e.getMessage());
@@ -462,7 +463,7 @@ final class HomeMode {
                 String home = originalHome(s);
                 if (!originalHomeInstalled(adb, home)) {
                     // No factory home screen left: a bare system screen would be worse than retrying ours.
-                    notice(app, "Главный экран упал 3 раза подряд, но заводского больше нет: оставил новый.");
+                    notice(app, Lang.tr("Главный экран упал 3 раза подряд, но заводского больше нет: оставил новый.", "The home screen crashed 3 times in a row, but the TV's own is gone: kept the new one."));
                     return;
                 }
                 adb.shell("pm enable " + GOOGLE_SETUP);
@@ -474,7 +475,7 @@ final class HomeMode {
                 }
                 s.put("homeReverted", true).put("disabled", kept);
                 save(app, s);
-                notice(app, "Новый главный экран упал 3 раза подряд; вернул заводской.");
+                notice(app, Lang.tr("Новый главный экран упал 3 раза подряд; вернул заводской.", "The new home screen crashed 3 times in a row; went back to the TV's own."));
                 adb.shell("am start -a android.intent.action.MAIN -c android.intent.category.HOME");
             } catch (Exception e) {
                 AppLog.w("could not give the home screen back: " + e.getMessage());
@@ -522,24 +523,24 @@ final class HomeMode {
                 }
                 if (!reverted && !homeHolder(adb).contains(PKG)) {
                     adb.shell("cmd package set-home-activity " + HOME_ACTIVITY);
-                    fixed.add("главный экран");
+                    fixed.add(Lang.tr("главный экран", "home screen"));
                 }
                 if (!adb.shell("settings get secure screensaver_components").contains(DREAM)) {
                     adb.shell("settings put secure screensaver_components " + DREAM);
-                    fixed.add("заставку");
+                    fixed.add(Lang.tr("заставку", "screensaver"));
                 }
                 JSONObject latest = state(app);
                 latest.put("disabled", new JSONArray(sorted(disabled)));
                 save(app, latest);
             } catch (Exception e) {
-                notice(app, "Не удалось проверить новый экран: " + e.getMessage());
+                notice(app, Lang.tr("Не удалось проверить новый экран: ", "Couldn't check the new home screen: ") + e.getMessage());
                 return;
             }
             if (!fixed.isEmpty()) {
-                notice(app, (updated ? "Обновление ТВ снова включило "
-                        : "Отключил недостающее: ") + String.join(", ", fixed) + ".");
+                notice(app, (updated ? Lang.tr("Обновление ТВ снова включило ", "A TV update turned back on: ")
+                        : Lang.tr("Отключил недостающее: ", "Turned off what was missing: ")) + String.join(", ", fixed) + ".");
             } else if (updated) {
-                notice(app, "ТВ обновился; новый экран по-прежнему включён.");
+                notice(app, Lang.tr("ТВ обновился; новый экран по-прежнему включён.", "The TV updated; the new home screen is still on."));
             }
         }
     }
@@ -638,8 +639,8 @@ final class HomeMode {
     }
 
     private static Adb connect(Context c, JSONObject s) throws IOException {
-        busy(c, "Подключение…");
-        Adb adb = Adb.connect(c, 120_000, () -> busy(c, "Примите на ТВ запрос «Разрешить отладку по USB?» (отметьте «Всегда разрешать»)."));
+        busy(c, Lang.tr("Подключение…", "Connecting…"));
+        Adb adb = Adb.connect(c, 120_000, () -> busy(c, Lang.tr("Примите на ТВ запрос «Разрешить отладку по USB?» (отметьте «Всегда разрешать»).", "Accept \"Allow USB debugging?\" on the TV (tick \"Always allow\").")));
         if (!s.optBoolean("adbAuthorized")) {
             JSONObject latest = state(c);
             try { latest.put("adbAuthorized", true); } catch (JSONException ignored) {}

@@ -41,6 +41,27 @@ final class Prefs {
         version++;
     }
 
+    // MARK: - Language
+
+    /** "ru" or "en"; until chosen, the TV's own language (Russian for a Russian TV, English otherwise). */
+    static String language() {
+        String v = sp().getString("language", null);
+        if (v == null) v = "ru".equals(Locale.getDefault().getLanguage()) ? "ru" : "en";
+        return v.equals("en") ? "en" : "ru";
+    }
+
+    static void setLanguage(String v) {
+        put("language", v);
+        Lang.set(v);
+    }
+
+    /** Reads the settings file again: the main process caches it, and the :home process changes it. */
+    @SuppressWarnings("deprecation")
+    static void reload() {
+        app.getSharedPreferences("settings", Context.MODE_MULTI_PROCESS);
+        Lang.set(language());
+    }
+
     // MARK: - Units
 
     /** "auto", "C" or "F". */
@@ -70,6 +91,10 @@ final class Prefs {
 
     static boolean weather() { return sp().getBoolean("weather", true); }
     static void setWeather(boolean on) { put("weather", on); }
+
+    /** The «Для вас» row: the tabs and the three recommendation cards. */
+    static boolean picks() { return sp().getBoolean("picks", true); }
+    static void setPicks(boolean on) { put("picks", on); }
 
     // MARK: - Shelf
 

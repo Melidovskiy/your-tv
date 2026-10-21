@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- The light background already in the window: opening the home screen never flashes another color. -->
-    <color name="home_background">#EBEBF0</color>
+    <!-- Black in the window too: opening the home screen never flashes another color before the wallpaper. -->
+    <color name="home_background">#000000</color>
 
     <style name="FreeMyTV.Home" parent="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
         <item name="android:windowBackground">@color/home_background</item>

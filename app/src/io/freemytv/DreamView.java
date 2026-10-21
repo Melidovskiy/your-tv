@@ -727,7 +727,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
             float base = clockBase + 76 * k;
             String symbol = Symbols.weather(wx.code, wx.isDay);
             String now = HomeData.degrees(wx.temp);
-            String range = "Макс. " + HomeData.degrees(wx.max) + "  Мин. " + HomeData.degrees(wx.min);
+            String range = Lang.tr("Макс. ", "High ") + HomeData.degrees(wx.max) + Lang.tr("  Мин. ", "  Low ") + HomeData.degrees(wx.min);
             float sw = Symbols.width(getContext(), symbol, 32 * k);
             float width = sw + 12 * k + weatherPaint.measureText(now) + 18 * k + weatherDim.measureText(range);
             float x = cx - width / 2;

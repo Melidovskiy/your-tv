@@ -27,8 +27,6 @@ final class Ui {
 
     /** Android 9 to 11: older TVs and boxes, whose GPUs need the cheaper drawing paths (Shadows, rounded images). */
     static final boolean LEGACY = Build.VERSION.SDK_INT < 31;
-    /** The interface is in Russian only (keys the formatted-value cache and the TMDB image languages). */
-    static final String language = "ru";
     static Typeface thin, light, displayMedium, displaySemibold, regular, medium, semibold;
     private static boolean loaded;
     private static final Rect BOUNDS = new Rect();
@@ -118,7 +116,7 @@ final class Ui {
     }
 
     static Locale locale() {
-        return Ru.LOCALE;
+        return Lang.locale();
     }
 
     /** "21:47". */
@@ -138,7 +136,7 @@ final class Ui {
      * and SimpleDateFormat and String.format there cost ~10 ms a frame on a Mi Box 3.
      */
     static String once(String kind, double value, Supplier<String> format) {
-        String key = kind + '|' + language + '|' + value;
+        String key = kind + '|' + Lang.code() + '|' + value;
         synchronized (FORMATTED) {
             String s = FORMATTED.get(key);
             if (s == null) {
@@ -150,7 +148,7 @@ final class Ui {
         }
     }
 
-    /** "вторник, 20 октября". */
+    /** "вторник, 20 октября" / "Tuesday, 20 October". */
     static String date(long now) {
         return new SimpleDateFormat("EEEE, d MMMM", locale()).format(new Date(now));
     }

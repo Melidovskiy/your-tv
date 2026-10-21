@@ -90,7 +90,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final float L_TALL_W = 320, L_CARD_GAP = 40, L_BUTTON = 82, L_BUTTON_GAP = 24, L_BUTTON_CY = 103;
     private static final float L_PLATTER_TOP = 814, L_TILE_H = 126;
     private static final int L_INK = 0xFF1D1D1F, L_DIM = 0xFF6E6E73, L_FAINT = 0xFF8E8E93;
-    private static final String[] TABS = {"Обзор", "Фильмы", "Сериалы"};
+    private static final String[] TABS_RU = {"Обзор", "Фильмы", "Сериалы"}, TABS_EN = {"Explore", "Movies", "Shows"};
     private static final String[] TAB_KIND = {null, "movie", "tv"};
     private static final int Z_TOP = 4, Z_CARDS = 5;
 
@@ -98,6 +98,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final Scene scene = new Scene();
     private final HomeData data;
     private final Recs recs;
+    private final boolean showPicks;    // the «Для вас» row; off: only the buttons at the top (Home Settings)
     private final Click click;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final SharedPreferences ui;
@@ -122,7 +123,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final int[] glassNight = new int[Backdrop.GW * Backdrop.GH], frostNight = new int[Backdrop.FW * Backdrop.FH];
     private final int[] neutralGlassPx = new int[Backdrop.GW * Backdrop.GH], neutralFrostPx = new int[Backdrop.FW * Backdrop.FH];
     private boolean nightPair;          // the glass holds both photos (day and night), blended by `night`
-    private Shader nightGradient;
 
     // At the top: tabs (0 to 2) and icon-only buttons (3 to 5); the three cards
     private int tab, topIndex, cardIndex;
@@ -133,9 +133,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final RectF[] cardRects = new RectF[3];
     private final List<HomeApps.Item> lightButtons = new ArrayList<>();
     private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lTip;
-    private Shader lightGradient;
-    /** Warm amber and rose light over the plain backgrounds (no photo yet), made once per size. */
-    private Shader glowAmber, glowRose;
 
     // Shelf
     private List<HomeApps.Item> shelf = new ArrayList<>();
@@ -308,6 +305,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         activity = a;
         data = HomeData.get(a);
         recs = Recs.get(a);
+        showPicks = Prefs.picks();
         click = new Click(a);
         ui = a.getSharedPreferences("home-ui", Context.MODE_PRIVATE);
         tvInputs = (TvInputManager) a.getSystemService(Context.TV_INPUT_SERVICE);
@@ -331,7 +329,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             v.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);   // TalkBack reads the items (Spoken)
             addView(v);
         }
-        setContentDescription("Главный экран");
+        setContentDescription(Lang.tr("Главный экран", "Home Screen"));
         drawerLayer.setVisibility(INVISIBLE);
         for (int i = 0; i < 6; i++) {
             topFocus[i] = new Spring(0.26f, 0.85f, 0);
@@ -432,18 +430,18 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lightButtons.clear();
         lightButtons.add(HomeApps.action(HomeApps.VPN, "vpn", vpnLabel(), "vpn"));
         lightButtons.add(HomeApps.action(HomeApps.WIFI, "wifi", "Wi-Fi", "wifi"));
-        lightButtons.add(HomeApps.action(HomeApps.ANDROID_SETTINGS, "tv-settings", "Настройки ТВ", "gear"));
+        lightButtons.add(HomeApps.action(HomeApps.ANDROID_SETTINGS, "tv-settings", Lang.tr("Настройки ТВ", "TV Settings"), "gear"));
     }
 
     // MARK: - VPN and network status (the corner buttons and the pills under them)
 
     private Vpn.State vpnState = Vpn.State.OFF;
-    /** The mode last chosen (true: the whole TV), and when a switch started (0: none): presses wait for it to end. */
-    private boolean vpnWhole;
+    /** The mode last chosen (off, or true: the whole TV), and when a switch started (0: none): presses wait for it to end. */
+    private boolean vpnWhole, vpnOff;
     private long vpnSwitchAt;
     private static final long VPN_SWITCH_MS = 10_000;
     private final Runnable vpnSwitchTimeout = this::readStatus;
-    private String vpnPill = "VPN выкл.", wifiPill = "";
+    private String vpnPill = Lang.tr("VPN выкл.", "VPN off"), wifiPill = "";
     private boolean statusReceiverOn;
     private final android.content.BroadcastReceiver statusReceiver = new android.content.BroadcastReceiver() {
         @Override public void onReceive(Context c, android.content.Intent intent) {
@@ -451,10 +449,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
     };
 
-    /** What pressing VPN does next, shown under the focused button (the pill shows what it does now). */
+    /** What the VPN carries now, shown under the focused button (a press switches to the other mode). */
     private String vpnLabel() {
-        if (vpnSwitching()) return "Переключаю VPN…";
-        return vpnWhole ? "Нажмите: VPN только для YouTube" : "Нажмите: VPN для всего ТВ";
+        if (vpnSwitching()) return Lang.tr("Переключаю VPN…", "Switching the VPN…");
+        if (vpnOff || vpnState == Vpn.State.OFF) return Lang.tr("VPN выключен", "VPN is off");
+        if (vpnState == Vpn.State.NO_SERVER) return Lang.tr("VPN: нет связи с сервером", "VPN: can't reach the server");
+        return vpnWhole ? Lang.tr("VPN для всего ТВ", "VPN for the whole TV") : Lang.tr("VPN только для YouTube", "VPN for YouTube only");
     }
 
     private boolean vpnSwitching() {
@@ -466,18 +466,22 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         vpnState = Vpn.configured() ? Vpn.read(getContext()) : Vpn.State.OFF;
         // The running mode wins once the switch reached it (or failed, or took too long).
         boolean settled = vpnState == Vpn.State.YOUTUBE || vpnState == Vpn.State.WHOLE_TV;
-        if (settled && (!vpnSwitching() || vpnWhole == (vpnState == Vpn.State.WHOLE_TV))) {
+        if (settled && (!vpnSwitching() || (!vpnOff && vpnWhole == (vpnState == Vpn.State.WHOLE_TV)))) {
             vpnWhole = vpnState == Vpn.State.WHOLE_TV;
+            vpnOff = false;
             vpnSwitchAt = 0;
-        } else if (vpnState == Vpn.State.NO_SERVER || vpnState == Vpn.State.OFF || !vpnSwitching()) {
+        } else if (vpnState == Vpn.State.OFF && (!vpnSwitching() || vpnOff)) {
+            vpnOff = true;
+            vpnSwitchAt = 0;
+        } else if (vpnState == Vpn.State.NO_SERVER || !vpnSwitching()) {
             vpnSwitchAt = 0;
         }
         switch (vpnState) {
             case YOUTUBE: vpnPill = "VPN: YouTube"; break;
-            case WHOLE_TV: vpnPill = "VPN: весь ТВ"; break;
-            case NO_SERVER: vpnPill = "VPN: нет связи"; break;
-            case CONNECTING: vpnPill = "VPN: подключение…"; break;
-            default: vpnPill = "VPN выкл."; break;
+            case WHOLE_TV: vpnPill = Lang.tr("VPN: весь ТВ", "VPN: whole TV"); break;
+            case NO_SERVER: vpnPill = Lang.tr("VPN: нет связи", "VPN: no connection"); break;
+            case CONNECTING: vpnPill = Lang.tr("VPN: подключение…", "VPN: connecting…"); break;
+            default: vpnPill = Lang.tr("VPN выкл.", "VPN off"); break;
         }
         wifiPill = Net.networkLabel(getContext());
         if (!lightButtons.isEmpty()) lightButtons.get(0).label = vpnLabel();
@@ -498,29 +502,35 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
     }
 
-    /** VPN button: the whole TV through the server, or back to YouTube only (asks for the VPN permission if needed). */
+    /** VPN button, in turn: YouTube only → the whole TV → off → YouTube only (asks for the VPN permission if needed). */
     private void toggleVpn() {
         if (!Vpn.configured()) {
-            showToast("VPN не настроен: нет ссылки на сервер.");
+            showToast(Lang.tr("VPN не настроен: нет ссылки на сервер.", "The VPN isn't set up: no server link."));
             return;
         }
         if (vpnSwitching()) return;   // one switch at a time: quick repeated presses would undo each other
-        boolean whole = !vpnWhole;
-        if (android.net.VpnService.prepare(activity) != null) HomeMode.requestVpn(activity, whole);   // not allowed yet
-        else Vpn.setWholeTv(activity, whole);
-        vpnWhole = whole;
+        if (!vpnOff && vpnWhole) {
+            Vpn.stop(activity);
+            vpnOff = true;
+        } else {
+            boolean whole = !vpnOff;     // off → YouTube only; YouTube only → whole TV
+            if (android.net.VpnService.prepare(activity) != null) HomeMode.requestVpn(activity, whole);   // not allowed yet
+            else Vpn.setWholeTv(activity, whole);
+            vpnWhole = whole;
+            vpnOff = false;
+        }
         vpnSwitchAt = SystemClock.uptimeMillis();
         handler.removeCallbacks(vpnSwitchTimeout);
         handler.postDelayed(vpnSwitchTimeout, VPN_SWITCH_MS + 100);
-        vpnState = Vpn.State.CONNECTING;
-        vpnPill = "VPN: подключение…";
+        vpnState = vpnOff ? Vpn.State.OFF : Vpn.State.CONNECTING;
+        vpnPill = vpnOff ? Lang.tr("VPN выкл.", "VPN off") : Lang.tr("VPN: подключение…", "VPN: connecting…");
         lightButtons.get(0).label = vpnLabel();
         statusDirty = true;
         status.invalidate();
     }
 
     private static String[] tabs() {
-        return TABS;
+        return Lang.english() ? TABS_EN : TABS_RU;
     }
 
     @Override public void onData() {
@@ -627,8 +637,6 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         rimPaint.setStyle(Paint.Style.STROKE);
         rimPaint.setStrokeWidth(1.5f * k);
         pillText = Ui.text(Ui.semibold, 25 * k, 0xFFFFFFFF);
-        lightGradient = null;
-        glowAmber = glowRose = null;
         buttonPaint = Ui.text(Ui.semibold, 29 * k, INK);
         capsuleText = Ui.numbers(Ui.medium, 29 * k, 0xF2FFFFFF);
         tipPaint = Ui.text(Ui.semibold, 25 * k, 0xF2FFFFFF);
@@ -1444,8 +1452,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         hourPaint.setColor(tone(L_DIM, 0xADFFFFFF));
         hourTemp.setColor(drawerInk(0.95f));
         float titleBase = ROW_TITLE * k;
-        if (drawerInputs > 0) c.drawText("Входы", drawerRects[0].left + 4 * k, titleBase, rowTitle);
-        if (drawerInputs < drawerItems.size()) c.drawText("Ярлыки", drawerRects[drawerInputs].left + 4 * k, titleBase, rowTitle);
+        if (drawerInputs > 0) c.drawText(Lang.tr("Входы", "Inputs"), drawerRects[0].left + 4 * k, titleBase, rowTitle);
+        if (drawerInputs < drawerItems.size()) c.drawText(Lang.tr("Ярлыки", "Shortcuts"), drawerRects[drawerInputs].left + 4 * k, titleBase, rowTitle);
         int top = -1;
         for (int i = 0; i < drawerItems.size(); i++) if (drawerFocus[i].value > 0.02f && (top < 0 || drawerFocus[i].value > drawerFocus[top].value)) top = i;
         for (int i = 0; i < drawerItems.size(); i++) if (i != top) drawDrawerTile(c, i);
@@ -1495,10 +1503,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     private void drawWeather(Canvas c, RectF r) {
         float x = r.left + 34 * k;
-        c.drawText(Prefs.city().isEmpty() ? "Погода" : Prefs.city(), x, r.top + 54 * k, cardTitle);
+        c.drawText(Prefs.city().isEmpty() ? Lang.tr("Погода", "Weather") : Prefs.city(), x, r.top + 54 * k, cardTitle);
         HomeData.Weather wx = data.weather;
         if (Double.isNaN(wx.temp)) {
-            c.drawText("Нет данных о погоде.", x, r.top + 120 * k, cardDim);
+            c.drawText(Lang.tr("Нет данных о погоде.", "No weather data."), x, r.top + 120 * k, cardDim);
             return;
         }
         String symbol = Symbols.weather(wx.code, wx.isDay);
@@ -1507,7 +1515,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         String now = HomeData.degrees(wx.temp);
         c.drawText(now, x + sw + 18 * k - Ui.leftBearing(bigTemp, now), r.top + 170 * k, bigTemp);
         c.drawText(HomeData.condition(wx.code, wx.isDay), x, r.top + 220 * k, cardText);
-        c.drawText("Макс. " + HomeData.degrees(wx.max) + "   Мин. " + HomeData.degrees(wx.min), x, r.top + 258 * k, cardDim);
+        c.drawText(Lang.tr("Макс. ", "High ") + HomeData.degrees(wx.max) + Lang.tr("   Мин. ", "   Low ") + HomeData.degrees(wx.min), x, r.top + 258 * k, cardDim);
         float split = r.left + 392 * k;
         fill.setShader(null);
         fill.setColor(tone(0x1A000000, 0x24FFFFFF));
@@ -1523,8 +1531,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             c.drawText(HomeData.degrees(wx.hourTemp.get(i)), hc, r.top + 196 * k, hourTemp);
         }
         float sx = hx, base = r.top + 258 * k;
-        if (wx.sunrise != 0) sx = sunItem(c, "sunrise", "Восход " + Ui.time(wx.sunrise), sx, base) + 36 * k;
-        if (wx.sunset != 0) sunItem(c, "sunset", "Закат " + Ui.time(wx.sunset), sx, base);
+        if (wx.sunrise != 0) sx = sunItem(c, "sunrise", Lang.tr("Восход ", "Sunrise ") + Ui.time(wx.sunrise), sx, base) + 36 * k;
+        if (wx.sunset != 0) sunItem(c, "sunset", Lang.tr("Закат ", "Sunset ") + Ui.time(wx.sunset), sx, base);
         float dx = r.left + 1342 * k;
         for (int i = 0; i < wx.days.size(); i++) {
             Forecast.Day d = wx.days.get(i);
@@ -1549,7 +1557,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
      * sunrise and sunset, "12 min ago").
      */
     private String drawerCardsKey() {
-        return data.weatherAt + "|" + Prefs.version + "|" + Ui.language + "|"
+        return data.weatherAt + "|" + Prefs.version + "|" + Lang.code() + "|"
                 + Float.floatToIntBits(dark()) + "|" + System.currentTimeMillis() / 60_000;
     }
 
@@ -1661,7 +1669,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private void drawSheet(Canvas c) {
         c.drawColor(0xA8000000);
         float shift = scroll.value * GRID_ROW * k;
-        c.drawText("Все приложения", w / 2f, 124 * k - shift, sheetTitle);
+        c.drawText(Lang.tr("Все приложения", "All Apps"), w / 2f, 124 * k - shift, sheetTitle);
         int n = others.size();
         if (gridLabels == null || gridLabels.length != n) {
             gridLabels = new String[n];
@@ -2051,7 +2059,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
         boolean opened = HomeApps.open(activity, it, this, Math.round(r.left), Math.round(r.top),
                 Math.round(r.width()), Math.round(r.height()));
-        if (!opened) showToast("Не удалось открыть " + it.label + ".");
+        if (!opened) showToast(Lang.tr("Не удалось открыть ", "Couldn't open ") + it.label + ".");
     }
 
     // MARK: - TalkBack: every reachable item as a virtual node (Spoken). Id = group * 1000 + index + 1.
@@ -2071,7 +2079,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             for (int i = 0; i < others.size(); i++) out.add(a11yId(GRID, i));
             return;
         }
-        for (int i = 0; i < 3 + lightButtons.size(); i++) out.add(a11yId(Z_TOP, i));
+        for (int i = showPicks ? 0 : 3; i < 3 + lightButtons.size(); i++) out.add(a11yId(Z_TOP, i));
         for (int i = 0; i < Math.min(3, cards.size()); i++) out.add(a11yId(Z_CARDS, i));
         for (int i = 0; i < shelf.size(); i++) out.add(a11yId(Z_SHELF, i));
         for (int i = 0; i < drawerItems.size(); i++) out.add(a11yId(Z_DRAWER, i));
@@ -2082,10 +2090,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         switch (group) {
             case GRID:
                 if (i >= others.size()) return "";
-                return label(others, i) + ", " + (i + 1) + " из " + others.size();
+                return label(others, i) + ", " + (i + 1) + Lang.tr(" из ", " of ") + others.size();
             case Z_TOP:
                 if (i >= 3) return label(lightButtons, i - 3);
-                return tabs()[i] + ", вкладка " + (i + 1) + " из 3";
+                return tabs()[i] + Lang.tr(", вкладка ", ", tab ") + (i + 1) + Lang.tr(" из 3", " of 3");
             case Z_CARDS: return i < cards.size() ? pickText(cards.get(i)) : "";
             case Z_SHELF: return label(shelf, i);
             case Z_DRAWER: return label(drawerItems, i);
@@ -2235,7 +2243,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     /** The three cards of the current tab (Explore, Movies, Shows) and the background taken from the first one. */
     private void updateCards() {
-        List<Recs.Pick> list = recs.now(TAB_KIND[tab]);
+        List<Recs.Pick> list = showPicks ? recs.now(TAB_KIND[tab]) : new ArrayList<>();
         if (!samePicks(list, cards)) {
             cards = list;
             cardIndex = Math.min(cardIndex, Math.max(0, list.size() - 1));
@@ -2244,7 +2252,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 retarget(false);
             }
         }
-        for (Recs.Pick p : recs.wanted()) recs.backdrop(p);   // all three tabs preloaded: switching tabs is instant
+        if (showPicks) for (Recs.Pick p : recs.wanted()) recs.backdrop(p);   // all three tabs preloaded: switching tabs is instant
         Backdrop b = cards.isEmpty() ? null : recs.backdrop(cards.get(0));
         if (wallpaper != null) showBackdrop(wallpaper);
         heroDirty = true;
@@ -2259,8 +2267,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     /**
-     * Background: the first card's photo, heavily blurred and almost white; without it, a light gradient. At night, the
-     * same photo almost black (or a dark gradient), drawn on top during the transition.
+     * Background: the wallpaper photo; black until it is loaded.
      */
     private void drawLightSky(Canvas c) {
         long up = SystemClock.uptimeMillis();
@@ -2269,31 +2276,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         // Drawer open: the background lightens (by day) or darkens (at night), as a filter on the drawing itself.
         android.graphics.ColorFilter v = veil(tone(0.32f, 0.42f) * Ui.clamp(drawer.value), blend(0xFFFFFFFF, 0xFF000000, night));
         if (bgTo == null || (fading && bgFrom == null)) {
-            if (lightGradient == null) lightGradient = new LinearGradient(0, 0, 0, h, 0xFFF8F1EA, 0xFFEADFD3, Shader.TileMode.CLAMP);
-            if (nightGradient == null) nightGradient = new LinearGradient(0, 0, 0, h, 0xFF221815, 0xFF110C0B, Shader.TileMode.CLAMP);
-            if (glowAmber == null) {
-                glowAmber = new android.graphics.RadialGradient(w * 0.16f, h * 0.28f, w * 0.47f, 0x66C4703E, 0, Shader.TileMode.CLAMP);
-                glowRose = new android.graphics.RadialGradient(w * 0.84f, h * 0.14f, w * 0.45f, 0x55B24E68, 0, Shader.TileMode.CLAMP);
-            }
+            // Before the wallpaper is loaded (a quick return home after the process was closed): plain black.
             fill.setColorFilter(v);
-            if (night < 0.999f) {
-                fill.setShader(lightGradient);
-                c.drawRect(screen, fill);
-            }
-            if (night > 0.001f) {
-                fill.setShader(nightGradient);
-                fill.setAlpha(Math.round(255 * night));
-                c.drawRect(screen, fill);
-                fill.setAlpha(255);
-            }
-            // The glows: full strength at night, half by day.
-            fill.setAlpha(Math.round(255 * (0.5f + 0.5f * night)));
-            fill.setShader(glowAmber);
-            c.drawRect(screen, fill);
-            fill.setShader(glowRose);
-            c.drawRect(screen, fill);
-            fill.setAlpha(255);
             fill.setShader(null);
+            fill.setColor(0xFF000000);
+            c.drawRect(screen, fill);
             fill.setColorFilter(null);
         }
         imagePaint.setColorFilter(v);
@@ -2318,8 +2305,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     private void drawLightTop(Canvas c) {
+        if (!showPicks) return;
         applyTone();
-        String hello = "Для вас";
+        String hello = Lang.tr("Для вас", "For You");
         c.drawText(hello, MARGIN * k - Ui.leftBearing(lTitle, hello), L_TITLE_BASE * k, lTitle);
         // Text tabs (the selected one in bold, in the main text color); with focus on the tabs, the selected one gets
         // the white pill with a shadow and grows a little (the tvOS focus).
@@ -2505,7 +2493,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 if (dy >= 0 || shelf.isEmpty()) return false;
                 if (cards.isEmpty()) {
                     zone = Z_TOP;
-                    topIndex = tab;
+                    topIndex = showPicks ? tab : 3;     // without the tabs, the first button at the top
                 } else {
                     zone = Z_CARDS;
                     cardIndex = nearest(cardRects, cards.size(), tileRects[shelfIndex].centerX());
@@ -2526,7 +2514,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                 break;
             case Z_TOP:
                 if (dx != 0) {
-                    int next = Math.max(0, Math.min(5, topIndex + dx));
+                    int next = Math.max(showPicks ? 0 : 3, Math.min(5, topIndex + dx));
                     if (next == topIndex) return true;
                     topIndex = next;
                     if (topIndex < 3) selectTab(topIndex);   // like Apple TV tabs: focusing a tab selects it

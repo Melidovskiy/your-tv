@@ -1,5 +1,7 @@
 # your-tv
 
+<img alt="your-tv: the home screen on a TV" src="assets/banner-en.png">
+
 [![Tests](https://github.com/Melidovskiy/your-tv/actions/workflows/test.yml/badge.svg)](https://github.com/Melidovskiy/your-tv/actions/workflows/test.yml)
 [![Version](https://img.shields.io/badge/version-1.0-blue)](app/AndroidManifest.xml)
 [![Android TV](https://img.shields.io/badge/Android%20TV-9%2B-3DDC84)](#requirements)
@@ -10,7 +12,7 @@
 
 A fast, ad-free home screen for Android TV: no sponsored rows, banners or autoplaying promos, with photo wallpapers, the weather, and an optional VPN through your own proxy server.
 
-Built on [Free My TV](https://github.com/simbasjungles/free-my-tv), an open-source home screen for Google TV and Android TV (MIT). Developed and tested on a Xiaomi Mi TV 4S (Android 9). **The interface is in Russian.**
+Built on [Free My TV](https://github.com/simbasjungles/free-my-tv), an open-source home screen for Google TV and Android TV (MIT). Developed and tested on Xiaomi Mi TV 4S and 4A (Android 9). **The interface is in English or Russian**: it follows the TV's language, and *Screen Settings* → *Язык · Language* changes it.
 
 > An independent project, not affiliated with Google, Xiaomi, YouTube, TMDB or any streaming service. Names and trademarks belong to their owners and are used only to describe compatibility.
 
@@ -29,7 +31,7 @@ Built on [Free My TV](https://github.com/simbasjungles/free-my-tv), an open-sour
 - **A clean home screen.** Picks of trending films and shows from the streaming apps installed on your TV (Netflix, Prime Video, Disney+, Max, Apple TV and others), a dock with your favorite apps followed by all the others, and a drawer with the inputs, shortcuts and a full-width weather card (now, the next hours, 3 days).
 - **Photo wallpapers.** Landscapes from Wikimedia Commons' featured pictures, a new one every two minutes.
 - **VPN, Wi-Fi and Settings buttons** at the top right, with status pills.
-- **An optional VPN through your own server.** Paste any common share link: `vless://` (TCP, WebSocket, gRPC, HTTPUpgrade, xhttp; TLS or Reality), `vmess://`, `trojan://` or `ss://`, from any panel or provider (3X-UI, Marzban, Hiddify, Outline and others). YouTube always goes through it; the VPN button sends the whole TV through it. Leave it empty and there is no VPN.
+- **An optional VPN through your own server.** Paste any common share link: `vless://` (TCP, WebSocket, gRPC, HTTPUpgrade, xhttp; TLS or Reality), `vmess://`, `trojan://` or `ss://`, from any panel or provider (3X-UI, Marzban, Hiddify, Outline and others). The VPN button switches between YouTube only, the whole TV, and off; off stays off after a restart. Leave the link empty and there is no VPN.
 - **YouTube without ads.** If [TizenTube](https://github.com/reisxd/TizenTubeCobalt) is installed, the YouTube tile opens it: YouTube's own TV interface without ads and sponsor segments.
 - **Fewer ads and trackers.** The stock home screen and its promo apps are turned off (not uninstalled), AdGuard DNS blocks ad domains for every app, and system animations run twice as fast. The list of apps to turn off was made on a Xiaomi TV: on other brands, review it first (`app/src/io/freemytv/Debloat.java`).
 - **A dock you edit with the remote.** Hold OK on an app: pick the first six, change the order, or hide apps.
@@ -59,7 +61,7 @@ Built on [Free My TV](https://github.com/simbasjungles/free-my-tv), an open-sour
    adb install -r FreeMyTV.apk
    ```
    The TV asks *Allow USB debugging?*: tick *Always allow* and press OK.
-5. **On the TV**, open the app *Главный экран* → *Главный экран* → *Новый*, and allow USB debugging once more (the app uses the TV's own ADB to switch).
+5. **On the TV**, open the app *Home Screen* (*Главный экран* on a TV set to Russian) → *Home Screen* → *New*, and allow USB debugging once more (the app uses the TV's own ADB to switch).
 
 Keep `freemytv.keystore`, which the first build creates: updates must be signed with it.
 
@@ -78,7 +80,7 @@ Keep `freemytv.keystore`, which the first build creates: updates must be signed 
 
 ## Going back
 
-On the TV: *Главный экран* → *Главный экран* → *Заводской*. The stock home screen, screensaver and apps come back, along with the DNS, animation and VPN settings. If the new home screen crashes three times in five minutes, it switches back by itself.
+On the TV: *Home Screen* → *Home Screen* → *Original*. The stock home screen, screensaver and apps come back, along with the DNS, animation and VPN settings. If the new home screen crashes three times in five minutes, it switches back by itself.
 
 ## Credits
 
@@ -86,7 +88,7 @@ On the TV: *Главный экран* → *Главный экран* → *За
 - **[Xray-core](https://github.com/XTLS/Xray-core)** via **[AndroidLibXrayLite](https://github.com/2dust/AndroidLibXrayLite)** (MPL-2.0): the VPN engine, downloaded at build time.
 - **[TizenTube Cobalt](https://github.com/reisxd/TizenTubeCobalt)** by reisxd: the YouTube client the YouTube tile opens; not included.
 - Icons: [Material Symbols](https://fonts.google.com/icons) (Apache 2.0) and [Lucide](https://lucide.dev) (ISC). Font: [Inter](https://rsms.me/inter/) (SIL OFL 1.1).
-- Wallpapers: featured pictures from [Wikimedia Commons](https://commons.wikimedia.org); each photo's author and license are in `app/assets/wallpapers.json`.
+- Wallpapers: featured pictures from [Wikimedia Commons](https://commons.wikimedia.org); each photo's author and license are in `app/assets/wallpapers.json`. In the banners: [a waterfall above Gimillan](https://commons.wikimedia.org/wiki/File:Bergtocht_van_Gimillan_(1805m.)_naar_Colle_Tsa_S%C3%A8tse_in_Cogne_Valley_(Itali%C3%AB)._Waterval_boven_Gimillan_gedeeltelijk_in_de_mist_03.jpg) by Dominicus Johannes Bergsma and [a paddy field at dusk in Don Det](https://commons.wikimedia.org/wiki/File:Colorful_sky_with_orange_and_pink_clouds_reflecting_in_the_water_of_a_paddy_field_at_dusk_in_Don_Det_Laos.jpg) by Basile Morin, both [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). App logos belong to their owners.
 - Weather: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0). This product uses the TMDB API but is not endorsed or certified by [TMDB](https://www.themoviedb.org/).
 
 Full list and license texts: [NOTICE.md](NOTICE.md).
@@ -101,11 +103,13 @@ The project only changes the TV's settings through its own ADB and turns apps of
 
 # Русский
 
+<img alt="your-tv: главный экран на телевизоре" src="assets/banner-ru.png">
+
 **Русский** · [English](#your-tv)
 
 Быстрый главный экран для Android TV без рекламы: никаких рекламных рядов, баннеров и автозапуска роликов. С фотообоями, погодой и VPN через ваш собственный прокси-сервер (по желанию).
 
-Основан на [Free My TV](https://github.com/simbasjungles/free-my-tv) — открытом главном экране для Google TV и Android TV (лицензия MIT). Разработан и проверен на Xiaomi Mi TV 4S (Android 9). Интерфейс на русском языке.
+Основан на [Free My TV](https://github.com/simbasjungles/free-my-tv) — открытом главном экране для Google TV и Android TV (лицензия MIT). Разработан и проверен на Xiaomi Mi TV 4S и 4A (Android 9). Интерфейс на русском или английском: по языку телевизора, сменить — «Настройки экрана» → «Язык · Language».
 
 > Проект независимый и не связан с Google, Xiaomi, YouTube, TMDB или какими-либо онлайн-кинотеатрами. Названия и товарные знаки принадлежат их правообладателям и используются только для указания совместимости.
 
@@ -124,7 +128,7 @@ The project only changes the TV's settings through its own ADB and turns apps of
 - **Чистый главный экран.** Подборка популярных фильмов и сериалов из онлайн-кинотеатров, установленных на вашем телевизоре (например, Кинопоиск, Okko, Wink, KION, ivi — у каждого свой набор), док с избранными приложениями и всеми остальными, нижняя панель со входами, ярлыками и погодой на всю ширину: сейчас, ближайшие часы и три дня.
 - **Фотообои.** Пейзажи из избранных фотографий Wikimedia Commons, новые каждые две минуты.
 - **Кнопки VPN, Wi-Fi и «Настройки»** в правом верхнем углу и плашки с их состоянием.
-- **VPN через свой сервер — по желанию.** Подойдёт любая распространённая ссылка: `vless://` (TCP, WebSocket, gRPC, HTTPUpgrade, xhttp; TLS или Reality), `vmess://`, `trojan://` или `ss://` — из любой панели или от любого провайдера (3X-UI, Marzban, Hiddify, Outline и другие). YouTube всегда идёт через сервер, кнопкой VPN через него можно пустить весь телевизор. Без ссылки VPN просто не включается.
+- **VPN через свой сервер — по желанию.** Подойдёт любая распространённая ссылка: `vless://` (TCP, WebSocket, gRPC, HTTPUpgrade, xhttp; TLS или Reality), `vmess://`, `trojan://` или `ss://` — из любой панели или от любого провайдера (3X-UI, Marzban, Hiddify, Outline и другие). Кнопка VPN переключает: только YouTube, весь телевизор, выключен; выключенный VPN остаётся выключенным и после перезагрузки. Без ссылки VPN просто не включается.
 - **YouTube без рекламы.** Если установлен [TizenTube](https://github.com/reisxd/TizenTubeCobalt), плитка YouTube открывает его — родной интерфейс YouTube для ТВ без рекламы и спонсорских вставок.
 - **Меньше рекламы и слежки.** Заводской главный экран и его рекламные приложения отключаются (не удаляются), DNS AdGuard блокирует рекламные адреса для всех приложений, анимации системы становятся вдвое быстрее. Список отключаемых приложений составлен для телевизора Xiaomi: на других марках сначала проверьте его (`app/src/io/freemytv/Debloat.java`).
 - **Док настраивается с пульта.** Удерживайте OK на приложении: первые шесть мест, порядок, скрытие.
@@ -181,7 +185,7 @@ The project only changes the TV's settings through its own ADB and turns apps of
 - **[Xray-core](https://github.com/XTLS/Xray-core)** через **[AndroidLibXrayLite](https://github.com/2dust/AndroidLibXrayLite)** (MPL-2.0): ядро VPN, скачивается при сборке.
 - **[TizenTube Cobalt](https://github.com/reisxd/TizenTubeCobalt)** by reisxd: клиент YouTube, который открывает плитка YouTube; в проект не входит.
 - Иконки: [Material Symbols](https://fonts.google.com/icons) (Apache 2.0) и [Lucide](https://lucide.dev) (ISC). Шрифт: [Inter](https://rsms.me/inter/) (SIL OFL 1.1).
-- Обои: избранные фотографии [Wikimedia Commons](https://commons.wikimedia.org); автор и лицензия каждой — в `app/assets/wallpapers.json`.
+- Обои: избранные фотографии [Wikimedia Commons](https://commons.wikimedia.org); автор и лицензия каждой — в `app/assets/wallpapers.json`. На баннерах: [водопад над Жимийаном](https://commons.wikimedia.org/wiki/File:Bergtocht_van_Gimillan_(1805m.)_naar_Colle_Tsa_S%C3%A8tse_in_Cogne_Valley_(Itali%C3%AB)._Waterval_boven_Gimillan_gedeeltelijk_in_de_mist_03.jpg), автор Dominicus Johannes Bergsma, и [рисовое поле на закате в Дон Дете](https://commons.wikimedia.org/wiki/File:Colorful_sky_with_orange_and_pink_clouds_reflecting_in_the_water_of_a_paddy_field_at_dusk_in_Don_Det_Laos.jpg), автор Basile Morin, обе — [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Логотипы приложений принадлежат их владельцам.
 - Погода: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0). Продукт использует TMDB API, но не одобрен и не сертифицирован [TMDB](https://www.themoviedb.org/).
 
 Полный список и тексты лицензий — в [NOTICE.md](NOTICE.md).

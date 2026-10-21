@@ -55,7 +55,7 @@ final class Recs {
     /** Bump when what is saved for each title changes (the saved list is discarded and fetched again). */
     private static final int CACHE_VERSION = 3;
     private static final int MANHA = 0, TARDE = 1, NOITE = 2;
-    static final String[] PERIOD_LABEL = {"НА УТРО", "НА ДЕНЬ", "НА ВЕЧЕР"};
+    private static final String[] PERIOD_RU = {"НА УТРО", "НА ДЕНЬ", "НА ВЕЧЕР"}, PERIOD_EN = {"THIS MORNING", "THIS AFTERNOON", "TONIGHT"};
     /** Service name on TMDB (part of the name, lowercase) → TV app (HomeApps key, package). */
     /** TMDB provider name (lowercase, contained) → key and the TV app's package. Only installed ones count. */
     private static final String[][] SERVICES = {
@@ -165,7 +165,7 @@ final class Recs {
     String error() { return error; }
 
     static String periodLabel() {
-        return PERIOD_LABEL[period(System.currentTimeMillis())];
+        return (Lang.english() ? PERIOD_EN : PERIOD_RU)[period(System.currentTimeMillis())];
     }
 
     private static int period(long now) {
@@ -251,7 +251,7 @@ final class Recs {
         if (!newKey && failedAt != 0 && sinceFail >= 0 && sinceFail < 60_000L) return;   // retry after a minute (the VPN may still be starting)
         int p = period(now);
         boolean stale = newKey || p != period || now - listAt > LIST_EVERY || now < listAt || picks.isEmpty()
-                || !listLanguage.equals(Ui.language);
+                || !listLanguage.equals(Lang.code());
         boolean missing = false;
         for (Pick pick : wanted()) missing |= !pick.detailed || !hasImage(pick);
         if (!stale && !missing) return;
@@ -428,12 +428,12 @@ final class Recs {
         picks = list;
         period = p;
         listAt = System.currentTimeMillis();
-        listLanguage = Ui.language;
+        listLanguage = Lang.code();
     }
 
     /** Language of titles and genres; the services come from the region. */
     private static String lang() {
-        return "ru-RU";
+        return Lang.english() ? "en-US" : "ru-RU";
     }
 
     private static void alternate(List<Pick> out, java.util.Set<String> seen, List<Pick> a, List<Pick> b, int max) {
@@ -464,22 +464,22 @@ final class Recs {
     /** Genre, runtime (or seasons) and the service it's on, among the ones the TV has. */
     private void fetchDetails(Pick p) throws Exception {
         JSONObject o = get("/" + p.kind + "/" + p.id
-                + "?language=" + lang() + "&append_to_response=watch/providers,images&include_image_language=null," + Ui.language + ",en");
+                + "?language=" + lang() + "&append_to_response=watch/providers,images&include_image_language=null," + Lang.code() + ",en");
         String best = bestBackdrop(o.optJSONObject("images"));
         if (best != null) p.backdrop = best;
         List<String> parts = new ArrayList<>();
         JSONArray genres = o.optJSONArray("genres");
-        if (p.kind.equals("tv")) parts.add("Сериал");
+        if (p.kind.equals("tv")) parts.add(Lang.tr("Сериал", "Series"));
         if (genres != null && genres.length() > 0) {
             String name = genres.getJSONObject(0).optString("name");
             parts.add(genre(name));
         }
         if (p.kind.equals("movie")) {
             int minutes = o.optInt("runtime");
-            if (minutes > 0) parts.add(minutes >= 60 ? (minutes / 60) + " ч " + (minutes % 60) + " мин" : minutes + " мин");
+            if (minutes > 0) parts.add(minutes >= 60 ? (minutes / 60) + Lang.tr(" ч ", " h ") + (minutes % 60) + Lang.tr(" мин", " min") : minutes + Lang.tr(" мин", " min"));
         } else {
             int seasons = o.optInt("number_of_seasons");
-            if (seasons > 0) parts.add(seasons + " " + Ru.plural(seasons, "сезон", "сезона", "сезонов"));
+            if (seasons > 0) parts.add(seasons + " " + Lang.plural(seasons, "сезон", "сезона", "сезонов", "season", "seasons"));
         }
         JSONObject wp = o.optJSONObject("watch/providers");
         JSONObject br = wp == null ? null : wp.optJSONObject("results") == null ? null : wp.optJSONObject("results").optJSONObject(REGION);
@@ -504,9 +504,9 @@ final class Recs {
     };
 
     private static String genre(String name) {
-        for (String[] g : GENRES) if (g[0].equalsIgnoreCase(name)) return g[1];
+        if (!Lang.english()) for (String[] g : GENRES) if (g[0].equalsIgnoreCase(name)) return g[1];
         // TMDB's Russian genres are lowercase ("мультфильм").
-        return name.isEmpty() ? name : name.substring(0, 1).toUpperCase(Ru.LOCALE) + name.substring(1);
+        return name.isEmpty() ? name : name.substring(0, 1).toUpperCase(Lang.locale()) + name.substring(1);
     }
 
     /**

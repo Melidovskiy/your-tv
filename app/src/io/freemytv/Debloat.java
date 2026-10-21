@@ -6,7 +6,7 @@ import java.util.Set;
 
 /**
  * Which apps the new mode turns off (pm disable-user: still installed, back with *Заводской*) and which it never
- * touches. Built for the Xiaomi Mi TV 4S (MiTV-MSSP1, Android 9) from its package list. Pure Java (test.sh).
+ * touches. Built for the Xiaomi Mi TV 4S (MiTV-MSSP1) and 4A (MiTV-AESP0), both Android 9, from their package lists. Pure Java (test.sh).
  */
 final class Debloat {
     private Debloat() {}
@@ -28,6 +28,7 @@ final class Debloat {
         "com.mitv.dream",                           // Xiaomi's screensaver, with its ads
         "com.android.printspooler",                 // printing: nothing to print from a TV
         "org.chromium.webview_shell",               // WebView's test browser
+        "android.autoinstalls.config.xioami.mibox3", // installs promo apps on first start (Mi TV 4A)
     };
 
     /** The voice assistant, only with disable_assistant=true in config.properties (the mic button stops working). */
@@ -47,5 +48,7 @@ final class Debloat {
         // MediaTek: remote keys, tuner and live TV, inputs, network, setup, factory menu
         "com.mediatek.hotkey.dispatcher", "com.mediatek.tv.agent", "com.mediatek.tvinput",
         "com.mediatek.tvinputservice.arbitratorservice", "com.mediatek.wwtv.tvcenter", "com.mediatek.wwtv.setupwizard",
-        "com.mediatek.network", "com.mediatek.tv.factory", "mediatek.factorymenu.ui", "com.mediatek.tv.service"));
+        "com.mediatek.network", "com.mediatek.tv.factory", "mediatek.factorymenu.ui", "com.mediatek.tv.service",
+        // Amlogic (Mi TV 4A): picture, inputs, subtitles, the Bluetooth remote, overlays
+        "com.droidlogic", "com.droidlogic.SubTitleService", "com.droidlogic.ble", "com.droidlogic.overlay"));
 }

@@ -23,6 +23,7 @@ public class ModeJob extends JobService {
         final Context app = getApplicationContext();
         new Thread(() -> {
             try {
+                Prefs.reload();     // the language may have changed in the :home process
                 switch (action) {
                     case APPLY: HomeMode.applyNow(app, mode); break;
                     case VERIFY: HomeMode.verifyNow(app); break;

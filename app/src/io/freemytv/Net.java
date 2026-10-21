@@ -36,13 +36,13 @@ final class Net {
         ConnectivityManager cm = c.getSystemService(ConnectivityManager.class);
         Network n = cm == null ? null : cm.getActiveNetwork();
         NetworkCapabilities caps = n == null ? null : cm.getNetworkCapabilities(n);
-        if (caps == null) return "Нет сети";
-        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) return "Кабель";
-        if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return "Подключено";
+        if (caps == null) return Lang.tr("Нет сети", "No network");
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) return Lang.tr("Кабель", "Cable");
+        if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return Lang.tr("Подключено", "Connected");
         WifiManager wifi = c.getApplicationContext().getSystemService(WifiManager.class);
         WifiInfo info = wifi == null ? null : wifi.getConnectionInfo();
         String ssid = info == null ? null : info.getSSID();
-        if (ssid == null || ssid.isEmpty() || ssid.equals(WifiManager.UNKNOWN_SSID) || ssid.equals("<unknown ssid>")) return "Подключено";
+        if (ssid == null || ssid.isEmpty() || ssid.equals(WifiManager.UNKNOWN_SSID) || ssid.equals("<unknown ssid>")) return Lang.tr("Подключено", "Connected");
         if (ssid.length() > 1 && ssid.startsWith("\"") && ssid.endsWith("\"")) ssid = ssid.substring(1, ssid.length() - 1);
         return ssid;
     }

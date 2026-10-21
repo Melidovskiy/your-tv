@@ -1,0 +1,87 @@
+<!doctype html>
+<!--
+  Source of the README header and the link preview (Social preview), rendered by tools/banner.sh.
+    banner.html?lang=en        — README header, 1280×520 (2x snapshot → banner-en.png; lang=ru → banner-ru.png)
+    banner.html?kind=social    — link preview, 1280×640 (→ Settings → Social preview)
+  The TV shows assets/home-en.png or home-ru.png: 1920×1080 screenshots of the home screen (tools/shot.sh), in each
+  language with that language's apps; the wallpapers in them are credited in the README.
+  The README shows the picture about a third of its size, so the type here is deliberately large.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>your-tv banner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@800&display=block" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: transparent; }
+  body { width: var(--w); height: var(--h); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+
+  /* Black and white background: soft light from the top left fading to black, with a little film grain. */
+  .card {
+    position: relative; width: 100%; height: 100%; overflow: hidden;
+    display: flex; align-items: center; justify-content: space-between; gap: var(--gap);
+    padding: 0 var(--pad-x);
+    background:
+      radial-gradient(60% 90% at 18% 20%, rgba(255, 255, 255, .13), transparent 70%),
+      radial-gradient(40% 60% at 90% 100%, rgba(255, 255, 255, .05), transparent 70%),
+      linear-gradient(135deg, #1d1d1f 0%, #0c0c0d 55%, #050505 100%);
+  }
+  .card::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  html[data-kind="readme"] .card { border-radius: 22px; border: 1px solid rgba(255, 255, 255, .10); }
+  .card > * { position: relative; z-index: 1; }
+
+  .left { min-width: 0; }
+  h1 { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: var(--fs-title); letter-spacing: -.03em; line-height: 1; color: #fff; white-space: nowrap; }
+  .sub { font-size: var(--fs-sub); font-weight: 500; line-height: 1.4; color: #fff; margin-top: var(--sp1); max-width: var(--sub-w); text-wrap: balance; }
+
+  /* The TV: a thin dark bezel around the screenshot, on a small stand, with a soft glow from the screen. */
+  .tv { flex: none; width: var(--tv); display: flex; flex-direction: column; align-items: center; }
+  .screen { width: 100%; aspect-ratio: 16 / 9; border-radius: 14px; padding: var(--bezel); background: #050505;
+            border: 1.5px solid rgba(255, 255, 255, .16);
+            box-shadow: 0 30px 70px rgba(0, 0, 0, .55), 0 0 90px rgba(140, 170, 255, .10), inset 0 1px 0 rgba(255, 255, 255, .06); }
+  .screen img, .screen .missing { display: block; width: 100%; height: 100%; border-radius: 6px; object-fit: cover; }
+  .screen .missing { background: linear-gradient(135deg, #2a2d34, #15171b); display: flex; align-items: center; justify-content: center;
+                     color: #8a8f99; font-size: 20px; font-weight: 500; }
+  .stand { width: 22%; height: var(--stand); margin-top: 0; background: linear-gradient(#1b1b1d, #0d0d0e);
+           clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%); border-radius: 0 0 4px 4px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="left">
+    <h1>your-tv</h1>
+    <p class="sub" id="sub">An ad-free home screen for Android TV, with photo wallpapers, the weather and a VPN to your own server</p>
+  </div>
+  <div class="tv">
+    <div class="screen"><img id="shot" src="home-en.png" alt="" onerror="this.outerHTML='&lt;div class=&quot;missing&quot;&gt;assets/home-en.png&lt;/div&gt;'"></div>
+    <div class="stand"></div>
+  </div>
+</div>
+
+<script>
+  var q = new URLSearchParams(location.search);
+  var kind = q.get('kind') === 'social' ? 'social' : 'readme';
+  document.documentElement.dataset.kind = kind;
+  if (q.get('lang') === 'ru') {
+    document.documentElement.lang = 'ru';
+    document.getElementById('sub').textContent = 'Главный экран для Android TV без рекламы: фото-обои, погода и VPN через свой сервер';
+    document.getElementById('shot').src = 'home-ru.png';
+  }
+  var S = kind === 'social'
+    ? { w: 1280, h: 640, padX: 64, gap: 48, title: 84, sub: 30, subW: 470, sp1: 28, tv: 640, bezel: 10, stand: 22 }
+    : { w: 1280, h: 520, padX: 60, gap: 48, title: 88, sub: 29, subW: 480, sp1: 26, tv: 620, bezel: 9, stand: 20 };
+  var r = document.documentElement.style;
+  [['--w', S.w], ['--h', S.h], ['--pad-x', S.padX], ['--gap', S.gap], ['--fs-title', S.title], ['--fs-sub', S.sub],
+   ['--sub-w', S.subW], ['--sp1', S.sp1], ['--tv', S.tv], ['--bezel', S.bezel], ['--stand', S.stand]
+  ].forEach(function (p) { r.setProperty(p[0], p[1] + 'px'); });
+  document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

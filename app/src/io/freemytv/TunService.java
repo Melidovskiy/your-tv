@@ -53,18 +53,26 @@ public class TunService extends VpnService {
         SharedPreferences prefs = getSharedPreferences("vpn", MODE_PRIVATE);
         switch (action) {
             case Vpn.STOP:
+                prefs.edit().putBoolean("off", true).apply();   // stays off, also after a reboot (always-on)
                 stopCore();
                 Vpn.write(this, Vpn.State.OFF);
                 stopForeground(true);
                 stopSelf();
                 return;
             case Vpn.WHOLE_TV:
-                prefs.edit().putBoolean("wholeTv", true).apply();
+                prefs.edit().putBoolean("wholeTv", true).putBoolean("off", false).apply();
                 break;
             case Vpn.YOUTUBE_ONLY:
-                prefs.edit().putBoolean("wholeTv", false).apply();
+                prefs.edit().putBoolean("wholeTv", false).putBoolean("off", false).apply();
                 break;
             default:   // START, and the system's own start of an always-on VPN
+                if (prefs.getBoolean("off", false)) {   // turned off with the VPN button
+                    stopCore();
+                    Vpn.write(this, Vpn.State.OFF);
+                    stopForeground(true);
+                    stopSelf();
+                    return;
+                }
                 // Already running in the saved mode: nothing to do (the home screen asks on every resume).
                 if (core != null && core.getIsRunning() && whole == prefs.getBoolean("wholeTv", false)
                         && (whole || youtubeApps().equals(carried))) return;
@@ -180,7 +188,7 @@ public class TunService extends VpnService {
         if (nm != null && nm.getNotificationChannel(CHANNEL) == null) {
             nm.createNotificationChannel(new NotificationChannel(CHANNEL, "VPN", NotificationManager.IMPORTANCE_MIN));
         }
-        return new Notification.Builder(this, CHANNEL).setSmallIcon(R.drawable.icon).setContentTitle("VPN работает")
+        return new Notification.Builder(this, CHANNEL).setSmallIcon(R.drawable.icon).setContentTitle(Lang.tr("VPN работает", "VPN is on"))
                 .setOngoing(true).build();
     }
 
