@@ -119,7 +119,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private static final long NIGHT_MS = 2000;
     private boolean nightTarget, duskTarget;
     private float night, nightFrom;     // 0 = day, 1 = night
-    /** Evening: the glass, the buttons and the wallpaper a little darker (0 = no, 1 = yes); moves with `night`. */
+    /** Evening: the glass and the buttons a little darker (0 = no, 1 = yes); moves with `night`. */
     private float dusk, duskFrom;
     private long nightAt;
     private final int[] glassNight = new int[Backdrop.GW * Backdrop.GH], frostNight = new int[Backdrop.FW * Backdrop.FH];
@@ -177,7 +177,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final Spring heroFocus = new Spring(0.28f, 0.85f, 0);
     private final RectF heroButton = new RectF();
     private Backdrop bgFrom, bgTo;     // null = gradient (no photo)
-    /** The home screen's background: the current wallpaper (Wallpapers, a new photo every 2 minutes). */
+    /** The home screen's background: the current wallpaper (Wallpapers, a new photo every 5 minutes). */
     private Backdrop wallpaper;
     private Wallpapers walls;
     private int wallSlot = -2;
@@ -299,7 +299,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             updatePalette();
             checkNight(true);
             updatePicks();      // three new ones every hour
-            updateWallpaper();  // a new photo every 2 minutes
+            updateWallpaper();  // a new photo every 5 minutes
             handler.postDelayed(this, 15_000);
         }
     };
@@ -885,7 +885,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     /**
-     * Loads this 2-minute slot's photo (a day, evening or night one) in the background (downloading it if needed, and the next one too) and fades to
+     * Loads this 5-minute slot's photo (a day, evening or night one) in the background (downloading it if needed, and the next one too) and fades to
      * it. Until a photo is on the TV, the built-in assets/wallpaper.jpg.
      */
     private void updateWallpaper() {
@@ -2334,9 +2334,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (b.image != null) {
             // The wallpaper, sharp; a little darker in the dark look so white text stays easy to read.
             drawImage(c, b.image, alpha);
-            if (night > 0.001f || dusk > 0.001f) {
+            // Not darker in the evening: the evening and night photos are darker themselves.
+            if (night > 0.001f) {
                 fill.setShader(null);
-                fill.setColor(Ui.alpha(0xFF000000, (0.22f * night + 0.2f * dusk) * Math.min(1, alpha)));
+                fill.setColor(Ui.alpha(0xFF000000, 0.22f * night * Math.min(1, alpha)));
                 c.drawRect(screen, fill);
             }
             return;

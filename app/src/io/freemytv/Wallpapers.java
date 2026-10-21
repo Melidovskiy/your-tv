@@ -18,12 +18,12 @@ import java.util.List;
 
 /**
  * The home screen's wallpapers: landscape photos from Wikimedia Commons (featured pictures with free licences, listed
- * with their authors and licences in assets/wallpapers.json), a new one every 2 minutes: the brighter ones by day, the
+ * with their authors and licences in assets/wallpapers.json), a new one every 5 minutes: the brighter ones by day, the
  * darker ones and the sunsets in the evening ("evening" in the list), stars and northern lights at night ("night"). They download as needed and the last
  * CACHE stay on the TV (its storage is small); the built-in assets/wallpaper.jpg covers the time before the first one.
  */
 final class Wallpapers {
-    static final long EVERY_MS = 2 * 60_000L;
+    static final long EVERY_MS = 5 * 60_000L;
     private static final int CACHE = 12;
 
     private final List<String> photos = new ArrayList<>();   // their 1920 px URLs
