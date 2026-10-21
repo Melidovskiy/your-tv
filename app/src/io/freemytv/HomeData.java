@@ -188,17 +188,24 @@ final class HomeData {
         }
     }
 
-    /**
-     * Night at your location: from sunset to sunrise (like Apple's "Automatic" appearance: the light design darkens).
-     * Uses the last weather fetched (it moves ~1 min a day); without data, 6:00 and 18:00.
-     */
+    /** The night look: always with the dark theme, from evening to morning with "Auto", never with the light one. */
     boolean isNight(long now) {
         String theme = Prefs.theme();
         if (theme.equals("dark")) return true;
         if (theme.equals("light")) return false;
+        return isEvening(now);
+    }
+
+    /**
+     * Evening at your location: from sunset, but no later than 20:00 (a summer sunset at 21:15 is too late for a
+     * living room), until sunrise, but no earlier than 7:00. Uses the last weather fetched (it moves ~1 min a day);
+     * without data, 18:00 to 7:00. Drives the evening look and the evening wallpapers.
+     */
+    boolean isEvening(long now) {
+        long hour = 60 * 60_000L;
         long t = Shaders.timeOfDay(now, 0);
-        long rise = Shaders.timeOfDay(weather.sunrise, 6 * 60 * 60_000L);
-        long set = Shaders.timeOfDay(weather.sunset, 18 * 60 * 60_000L);
+        long rise = Math.max(Shaders.timeOfDay(weather.sunrise, 7 * hour), 7 * hour);
+        long set = Math.min(Shaders.timeOfDay(weather.sunset, 18 * hour), 20 * hour);
         return t < rise || t >= set;
     }
 

@@ -117,8 +117,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     // Night look (like Apple's "Automatic" appearance): darker from sunset to sunrise, with a 2 s transition.
     private static final long NIGHT_MS = 2000;
-    private boolean nightTarget;
+    private boolean nightTarget, duskTarget;
     private float night, nightFrom;     // 0 = day, 1 = night
+    /** Evening: the glass, the buttons and the wallpaper a little darker (0 = no, 1 = yes); moves with `night`. */
+    private float dusk, duskFrom;
     private long nightAt;
     private final int[] glassNight = new int[Backdrop.GW * Backdrop.GH], frostNight = new int[Backdrop.FW * Backdrop.FH];
     private final int[] neutralGlassPx = new int[Backdrop.GW * Backdrop.GH], neutralFrostPx = new int[Backdrop.FW * Backdrop.FH];
@@ -133,6 +135,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final RectF[] cardRects = new RectF[3];
     private final List<HomeApps.Item> lightButtons = new ArrayList<>();
     private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lTip;
+    /** The clock and the date under it: large at the top left without the recommendations; with them, small beside the buttons. */
+    private Paint lClock, lClockSmall, lDate, lDateSmall;
 
     // Shelf
     private List<HomeApps.Item> shelf = new ArrayList<>();
@@ -211,7 +215,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private long lastNanos, resumedAt, lastStep;
     private int w, h;
     private float k = 1;
-    private String clockText = "";
+    private String clockText = "", dateText = "";
     private long clockMinute = -1;
     private boolean okDown, backDown;
 
@@ -632,6 +636,17 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lCardMeta.setShadowLayer(10 * k, 0, 2 * k, 0xCC000000);
         lTip = Ui.text(Ui.semibold, 25 * k, L_INK);
         lTip.setTextAlign(Paint.Align.CENTER);
+        lClock = Ui.numbers(Ui.displaySemibold, 76 * k, L_INK);
+        lClockSmall = Ui.numbers(Ui.medium, 40 * k, L_INK);
+        lClockSmall.setTextAlign(Paint.Align.RIGHT);
+        // On the sharp wallpaper, like the card captions: a soft shadow keeps them readable on bright photos.
+        lClock.setShadowLayer(14 * k, 0, 2 * k, 0x80000000);
+        lClockSmall.setShadowLayer(10 * k, 0, 2 * k, 0x99000000);
+        lDate = Ui.text(Ui.medium, 30 * k, L_INK);
+        lDateSmall = Ui.text(Ui.medium, 21 * k, L_INK);
+        lDateSmall.setTextAlign(Paint.Align.RIGHT);
+        lDate.setShadowLayer(10 * k, 0, 2 * k, 0x99000000);
+        lDateSmall.setShadowLayer(8 * k, 0, 2 * k, 0x99000000);
         frostPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
         rimPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         rimPaint.setStyle(Paint.Style.STROKE);
@@ -710,6 +725,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (updateClock()) {
             layoutStatus();
             status.invalidate();
+            if (!showPicks) heroLayer.invalidate();   // the large clock at the top left
             if (hero != null && hero.clock) {
                 refreshHero(false);
                 heroLayer.invalidate();
@@ -762,6 +778,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (minute == clockMinute || clockPaint == null) return false;
         clockMinute = minute;
         clockText = Ui.clock(now);
+        String d = Ui.date(now);   // "вторник, 21 октября" / "Tuesday, 21 October"
+        dateText = d.isEmpty() ? d : d.substring(0, 1).toUpperCase(Ui.locale()) + d.substring(1);
         return true;
     }
 
@@ -867,11 +885,13 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     /**
-     * Loads this 2-minute slot's photo in the background (downloading it if needed, and the next one too) and fades to
+     * Loads this 2-minute slot's photo (a day or an evening one) in the background (downloading it if needed, and the next one too) and fades to
      * it. Until a photo is on the TV, the built-in assets/wallpaper.jpg.
      */
     private void updateWallpaper() {
-        int slot = walls.slot(System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        boolean isEvening = data.isEvening(now);
+        int slot = walls.slot(now, isEvening), next = walls.next(now, isEvening);
         if (wallLoading || (slot == wallSlot && wallpaper != null)) return;
         wallLoading = true;
         android.content.res.AssetManager assets = getContext().getAssets();
@@ -890,7 +910,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                     }
                     if (src != null) b = Backdrop.wallpaper(src);
                 }
-                if (walls.count() > 0) walls.file((slot + 1) % walls.count());   // ready for the next slot
+                if (next >= 0) walls.file(next);   // ready for the next slot
             } catch (Exception | OutOfMemoryError e) {
                 AppLog.w("wallpaper: " + e);
             }
@@ -938,16 +958,20 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     // MARK: - Night look
 
-    /** Day or night right now (from the sun at your location); `animate`: with the transition. */
+    /** Day or night, and evening or not, right now (from the sun at your location); `animate`: with the transition. */
     private void checkNight(boolean animate) {
-        boolean want = data.isNight(System.currentTimeMillis());
-        if (want == nightTarget) return;
+        long now = System.currentTimeMillis();
+        boolean want = data.isNight(now), wantDusk = data.isEvening(now) && !Prefs.theme().equals("light");
+        if (want == nightTarget && wantDusk == duskTarget) return;
         nightTarget = want;
+        duskTarget = wantDusk;
         if (animate && running) {
             nightFrom = night;
+            duskFrom = dusk;
             nightAt = SystemClock.uptimeMillis();
         } else {
             night = want ? 1 : 0;
+            dusk = wantDusk ? 1 : 0;
             nightAt = 0;
             nightChanged();
         }
@@ -956,10 +980,13 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     /** Advances the day ⇄ night transition; true while it runs. */
     private boolean tickNight(long up) {
         if (nightAt == 0) return false;
-        float t = Ui.clamp((up - nightAt) / NIGHT_MS), to = nightTarget ? 1 : 0;
-        night = nightFrom + (to - nightFrom) * t * t * (3 - 2 * t);
+        float t = Ui.clamp((up - nightAt) / NIGHT_MS), to = nightTarget ? 1 : 0, duskTo = duskTarget ? 1 : 0;
+        float e = t * t * (3 - 2 * t);
+        night = nightFrom + (to - nightFrom) * e;
+        dusk = duskFrom + (duskTo - duskFrom) * e;
         if (t >= 1) {
             night = to;
+            dusk = duskTo;
             nightAt = 0;
         }
         nightChanged();
@@ -1010,6 +1037,10 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lCardTitle.setColor(tone(L_INK, WHITE));
         lCardMeta.setColor(tone(L_DIM, 0xFFD1D1D6));
         lTip.setColor(tone(L_INK, WHITE));
+        lClock.setColor(tone(L_INK, WHITE));
+        lClockSmall.setColor(tone(L_INK, WHITE));
+        lDate.setColor(tone(L_DIM, 0xE0FFFFFF));
+        lDateSmall.setColor(tone(L_DIM, 0xE0FFFFFF));
     }
 
     private boolean tickBackgroundFade(long up) {
@@ -1205,6 +1236,15 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         // White glass by day; smoked glass at night.
         scene.liquid(c, platterRect, radius, tone(0xFFFFFFFF, SMOKE), tone(0.42f, 0.12f), tone(0.03f, 0.08f),
                 tone(30, 34) * k, tone(22, 28) * k, tone(0.65f, 0.95f), 1);
+        evening(c, platterRect, radius, 0.22f);
+    }
+
+    /** The evening shade over a glass shape: black at `strength` × dusk. */
+    private void evening(Canvas c, RectF r, float radius, float strength) {
+        if (dusk <= 0.004f) return;
+        fill.setShader(null);
+        fill.setColor(Ui.alpha(0xFF000000, strength * dusk));
+        c.drawRoundRect(r, radius, radius, fill);
     }
 
     private void drawTiles(Canvas c) {
@@ -1435,6 +1475,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             scene.glass(c, r, radius, 0xFFFFFFFF, lightTint, 0, 0, 0.02f, 1, 1 - dk);
         }
         if (dk > 0.001f) scene.glass(c, r, radius, SMOKE, 0.4f, 0, 0, 0.02f, 1, dk);
+        evening(c, r, radius, 0.2f);
     }
 
     private void drawerCard(Canvas c, RectF r) {
@@ -2293,9 +2334,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         if (b.image != null) {
             // The wallpaper, sharp; a little darker in the dark look so white text stays easy to read.
             drawImage(c, b.image, alpha);
-            if (night > 0.001f) {
+            if (night > 0.001f || dusk > 0.001f) {
                 fill.setShader(null);
-                fill.setColor(Ui.alpha(0xFF000000, 0.22f * night * Math.min(1, alpha)));
+                fill.setColor(Ui.alpha(0xFF000000, (0.22f * night + 0.2f * dusk) * Math.min(1, alpha)));
                 c.drawRect(screen, fill);
             }
             return;
@@ -2305,7 +2346,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     private void drawLightTop(Canvas c) {
-        if (!showPicks) return;
+        if (!showPicks) {
+            applyTone();
+            c.drawText(clockText, MARGIN * k - Ui.leftBearing(lClock, clockText), L_TITLE_BASE * k, lClock);
+            c.drawText(dateText, MARGIN * k - Ui.leftBearing(lDate, dateText), (L_TITLE_BASE + 50) * k, lDate);
+            return;
+        }
         applyTone();
         String hello = Lang.tr("Для вас", "For You");
         c.drawText(hello, MARGIN * k - Ui.leftBearing(lTitle, hello), L_TITLE_BASE * k, lTitle);
@@ -2396,6 +2442,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
      */
     private void drawLightButtons(Canvas c) {
         applyTone();
+        if (showPicks) {
+            RectF first = topRects[3];
+            float x = first.left - 34 * k;
+            c.drawText(clockText, x, first.centerY() + Ui.halfCap(lClockSmall) - 12 * k, lClockSmall);
+            c.drawText(dateText, x, first.centerY() + 34 * k, lDateSmall);
+        }
         float labelFocus = 0;
         for (int i = 0; i < 3; i++) {
             RectF r = topRects[3 + i];
@@ -2457,6 +2509,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         fill.setShader(null);
         fill.setColor(Ui.alpha(tone(0x73FFFFFF, 0x2EFFF0E6), alpha));
         c.drawRoundRect(r, radius, radius, fill);
+        evening(c, r, radius, 0.24f * alpha);
         rimPaint.setColor(Ui.alpha(tone(0x99FFFFFF, 0x57FFF0E6), alpha));
         c.drawRoundRect(r, radius, radius, rimPaint);
     }

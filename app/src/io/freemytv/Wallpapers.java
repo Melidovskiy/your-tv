@@ -18,7 +18,8 @@ import java.util.List;
 
 /**
  * The home screen's wallpapers: landscape photos from Wikimedia Commons (featured pictures with free licences, listed
- * with their authors and licences in assets/wallpapers.json), a new one every 2 minutes. They download as needed and the last
+ * with their authors and licences in assets/wallpapers.json), a new one every 2 minutes: the brighter ones by day, the
+ * darker ones and the sunsets in the evening ("evening" in the list). They download as needed and the last
  * CACHE stay on the TV (its storage is small); the built-in assets/wallpaper.jpg covers the time before the first one.
  */
 final class Wallpapers {
@@ -26,6 +27,7 @@ final class Wallpapers {
     private static final int CACHE = 12;
 
     private final List<String> photos = new ArrayList<>();   // their 1920 px URLs
+    private final List<Integer> day = new ArrayList<>(), evening = new ArrayList<>();   // indexes into photos
     private final File dir;
 
     Wallpapers(Context c) {
@@ -34,6 +36,7 @@ final class Wallpapers {
             JSONArray list = new JSONArray(read(in));
             for (int i = 0; i < list.length(); i++) {
                 JSONObject o = list.getJSONObject(i);
+                (o.optBoolean("evening") ? evening : day).add(photos.size());
                 photos.add(o.getString("url"));
             }
         } catch (Exception e) {
@@ -41,13 +44,19 @@ final class Wallpapers {
         }
     }
 
-    /** The slot for `now` (changes every EVERY_MS, the same on every start), or -1 with no list. */
-    int slot(long now) {
-        return photos.isEmpty() ? -1 : (int) ((now / EVERY_MS) % photos.size());
+    /** The photo for `now` (changes every EVERY_MS, the same on every start), from the day or the evening ones; -1 with no list. */
+    int slot(long now, boolean isEvening) {
+        return pick(now / EVERY_MS, isEvening);
     }
 
-    int count() {
-        return photos.size();
+    /** The photo after `now`'s, to download ahead. */
+    int next(long now, boolean isEvening) {
+        return pick(now / EVERY_MS + 1, isEvening);
+    }
+
+    private int pick(long n, boolean isEvening) {
+        List<Integer> set = isEvening && !evening.isEmpty() ? evening : day.isEmpty() ? evening : day;
+        return set.isEmpty() ? -1 : set.get((int) (n % set.size()));
     }
 
     /** The slot's photo on disk, downloading it first if needed (background threads only); null if it can't be had. */
