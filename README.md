@@ -29,7 +29,7 @@ Built on [Free My TV](https://github.com/simbasjungles/free-my-tv), an open-sour
 ## What it does
 
 - **A clean home screen.** Picks of trending films and shows from the streaming apps installed on your TV (Netflix, Prime Video, Disney+, Max, Apple TV and others), a dock with your favorite apps followed by all the others, and a drawer with the inputs, shortcuts and a full-width weather card (now, the next hours, 3 days).
-- **Photo wallpapers.** Landscapes from Wikimedia Commons' featured pictures, a new one every two minutes: bright ones by day, darker ones and sunsets in the evening.
+- **Photo wallpapers.** Landscapes from Wikimedia Commons' featured pictures, a new one every two minutes: bright ones by day, darker ones and sunsets in the evening, stars and northern lights from 21:00.
 - **An evening look.** From sunset (no later than 20:00) to sunrise (no earlier than 7:00) the glass, buttons and wallpaper get a little darker.
 - **A clock with the date** at the top left (beside the buttons when the recommendations are shown).
 - **VPN, Wi-Fi and Settings buttons** at the top right, with status pills.
@@ -128,7 +128,7 @@ The project only changes the TV's settings through its own ADB and turns apps of
 ## Что умеет
 
 - **Чистый главный экран.** Подборка популярных фильмов и сериалов из онлайн-кинотеатров, установленных на вашем телевизоре (например, Кинопоиск, Okko, Wink, KION, ivi — у каждого свой набор), док с избранными приложениями и всеми остальными, нижняя панель со входами, ярлыками и погодой на всю ширину: сейчас, ближайшие часы и три дня.
-- **Фотообои.** Пейзажи из избранных фотографий Wikimedia Commons, новые каждые две минуты: днём светлые, вечером темнее и закаты.
+- **Фотообои.** Пейзажи из избранных фотографий Wikimedia Commons, новые каждые две минуты: днём светлые, вечером темнее и закаты, с 21:00 звёзды и северное сияние.
 - **Вечерний вид.** С заката (но не позже 20:00) до рассвета (но не раньше 7:00) стекло, кнопки и обои становятся чуть темнее.
 - **Часы с датой** в левом верхнем углу (рядом с кнопками, если показаны рекомендации).
 - **Кнопки VPN, Wi-Fi и «Настройки»** в правом верхнем углу и плашки с их состоянием.

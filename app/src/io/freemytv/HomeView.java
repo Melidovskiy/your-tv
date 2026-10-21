@@ -885,13 +885,13 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     /**
-     * Loads this 2-minute slot's photo (a day or an evening one) in the background (downloading it if needed, and the next one too) and fades to
+     * Loads this 2-minute slot's photo (a day, evening or night one) in the background (downloading it if needed, and the next one too) and fades to
      * it. Until a photo is on the TV, the built-in assets/wallpaper.jpg.
      */
     private void updateWallpaper() {
         long now = System.currentTimeMillis();
-        boolean isEvening = data.isEvening(now);
-        int slot = walls.slot(now, isEvening), next = walls.next(now, isEvening);
+        int part = data.isLateNight(now) ? Wallpapers.NIGHT : data.isEvening(now) ? Wallpapers.EVENING : Wallpapers.DAY;
+        int slot = walls.slot(now, part), next = walls.next(now, part);
         if (wallLoading || (slot == wallSlot && wallpaper != null)) return;
         wallLoading = true;
         android.content.res.AssetManager assets = getContext().getAssets();

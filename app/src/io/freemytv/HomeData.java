@@ -209,6 +209,13 @@ final class HomeData {
         return t < rise || t >= set;
     }
 
+    /** Night: from 21:00 until the evening ends in the morning. Drives the night wallpapers (stars, northern lights). */
+    boolean isLateNight(long now) {
+        long hour = 60 * 60_000L;
+        long t = Shaders.timeOfDay(now, 0);
+        return t >= 21 * hour || (t < 12 * hour && isEvening(now));
+    }
+
     // MARK: - Formatting
 
     private static Locale locale() {
