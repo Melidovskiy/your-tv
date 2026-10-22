@@ -23,6 +23,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
 <style>
   :root {
+    --surface: linear-gradient(180deg, #19191c 0%, #101012 100%);
+    --lift: inset 0 1px 0 rgba(255,255,255,.07), 0 1px 2px rgba(0,0,0,.6), 0 22px 44px -22px rgba(0,0,0,.95);
+    --lift-hover: inset 0 1px 0 rgba(255,255,255,.1), 0 2px 4px rgba(0,0,0,.6), 0 30px 60px -24px rgba(0,0,0,1);
     --bg: #000; --bg2: #0a0a0b; --card: #111113; --card2: #18181b;
     --line: rgba(255,255,255,.08); --line2: rgba(255,255,255,.14);
     --text: #f5f5f7; --dim: #a1a1a6; --dim2: #6e6e73;
@@ -123,20 +126,25 @@
   h2 .dim { color: var(--dim2); }
   .sub { color: var(--dim); font-size: 19px; max-width: 640px; margin-top: 16px; }
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 28px; transition: border-color .3s, transform .4s var(--ease); }
-  .card:hover { border-color: var(--line2); transform: translateY(-2px); }
-  .card svg { width: 28px; height: 28px; stroke: var(--text); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 28px; box-shadow: var(--lift);
+          transition: border-color .3s, transform .4s var(--ease), box-shadow .4s var(--ease); }
+  .card:hover { border-color: var(--line2); transform: translateY(-3px); box-shadow: var(--lift-hover); }
+  /* coloured icon tiles, as on Apple's settings screens */
+  .ico { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; color: #fff;
+         background: linear-gradient(160deg, var(--c1) 0%, var(--c2) 100%);
+         box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(0,0,0,.18), 0 8px 18px -8px var(--c2); }
+  .ico svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .card h3 { font-size: 19px; letter-spacing: -.01em; margin-top: 18px; font-weight: 600; }
   .card p { color: var(--dim); font-size: 15px; margin-top: 8px; line-height: 1.5; }
   .wide { grid-column: span 2; }
 
   .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 48px; }
-  .shot { border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); background: var(--card); }
+  .shot { border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--lift); }
   .shot img { width: 100%; height: auto; aspect-ratio: 16/9; object-fit: cover; }
   .shot figcaption { padding: 16px 20px; color: var(--dim); font-size: 14px; }
 
   .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
-  .mode { border: 1px solid var(--line); border-radius: var(--r); padding: 26px; background: var(--card); }
+  .mode { border: 1px solid var(--line); border-radius: var(--r); padding: 26px; background: var(--surface); box-shadow: var(--lift); }
   .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; padding: 7px 14px; border-radius: 999px;
           border: 1px solid var(--line2); background: rgba(255,255,255,.04); }
   .pill.on { border-color: rgba(48,209,88,.4); background: rgba(48,209,88,.12); color: #d6f5de; }
@@ -144,9 +152,9 @@
   .mode p { color: var(--dim); font-size: 15px; margin-top: 16px; }
 
   .steps { counter-reset: s; margin-top: 48px; display: grid; gap: 14px; }
-  .step { display: grid; grid-template-columns: 52px 1fr; gap: 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 24px; }
+  .step { display: grid; grid-template-columns: 52px 1fr; gap: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 24px; box-shadow: var(--lift); }
   .step::before { counter-increment: s; content: counter(s); width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line2);
-                  display: grid; place-items: center; font-weight: 600; font-size: 15px; color: var(--dim); }
+                  display: grid; place-items: center; font-weight: 600; font-size: 15px; color: var(--text); background: linear-gradient(160deg, #2a2a2e, #161618); box-shadow: inset 0 1px 0 rgba(255,255,255,.12); }
   .step h3 { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
   .step p { color: var(--dim); font-size: 15px; margin-top: 6px; }
   pre { position: relative; margin-top: 14px; background: #000; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px;
@@ -280,32 +288,32 @@
     <h2 class="rv"><span class="en">Everything you need.<br><span class="dim">Nothing you don't.</span></span><span class="ru">Всё, что нужно.<br><span class="dim">Ничего лишнего.</span></span></h2>
     <div class="grid">
       <div class="card rv">
-        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2.5"/><path d="M8 20h8"/><path d="M7 12l3-3 2 2 3-3 2 2"/></svg>
+        <span class="ico" style="--c1:#3d8bff;--c2:#0047e0"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2.5"/><path d="M8 20h8"/><path d="M7 12l3-3 2 2 3-3 2 2"/></svg></span>
         <h3><span class="en">A clean home screen</span><span class="ru">Чистый главный экран</span></h3>
         <p><span class="en">Trending films and shows from the apps you already have, a dock with your favorite apps, and a drawer with the inputs, shortcuts and the weather. No sponsored rows, no promos.</span><span class="ru">Популярные фильмы и сериалы из приложений, которые у вас уже есть, панель любимых приложений и шторка со входами, ярлыками и погодой. Без рекламных рядов и промо.</span></p>
       </div>
       <div class="card rv">
-        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.6"/></svg>
+        <span class="ico" style="--c1:#2ad3a6;--c2:#0b8f74"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.6"/></svg></span>
         <h3><span class="en">Photo wallpapers</span><span class="ru">Фото-обои</span></h3>
         <p><span class="en">Landscapes from Wikimedia Commons, a new one every five minutes: bright by day, sunsets in the evening, stars at night.</span><span class="ru">Пейзажи из Wikimedia Commons, новые каждые пять минут: светлые днём, закаты вечером, звёзды ночью.</span></p>
       </div>
       <div class="card rv">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+        <span class="ico" style="--c1:#ff9f0a;--c2:#e8590c"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
         <h3><span class="en">Clock and evening look</span><span class="ru">Часы и вечерний вид</span></h3>
         <p><span class="en">The time and date at a glance, 12- or 24-hour. After sunset the screen gets a little darker.</span><span class="ru">Время и дата с первого взгляда, 12- или 24-часовой формат. После заката экран становится чуть темнее.</span></p>
       </div>
       <div class="card rv">
-        <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.4-3 8-7 9.5-4-1.5-7-5.1-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        <span class="ico" style="--c1:#4ad66d;--c2:#14963c"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.4-3 8-7 9.5-4-1.5-7-5.1-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
         <h3><span class="en">Fewer ads everywhere</span><span class="ru">Меньше рекламы везде</span></h3>
         <p><span class="en">The stock home screen and its promo apps are turned off, never uninstalled. AdGuard DNS blocks ad domains for every app.</span><span class="ru">Заводской экран и рекламные приложения выключаются, но не удаляются. AdGuard DNS блокирует рекламу во всех приложениях.</span></p>
       </div>
       <div class="card rv">
-        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10.5 9.5v5l4-2.5z"/></svg>
+        <span class="ico" style="--c1:#ff4d4d;--c2:#d70f2b"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10.5 9.5v5l4-2.5z"/></svg></span>
         <h3><span class="en">YouTube without ads</span><span class="ru">YouTube без рекламы</span></h3>
         <p><span class="en">With TizenTube installed, the YouTube tile opens YouTube's own TV interface without ads or sponsor segments.</span><span class="ru">Если установлен TizenTube, плитка YouTube открывает родной интерфейс YouTube без рекламы и спонсорских вставок.</span></p>
       </div>
       <div class="card rv">
-        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/><path d="M17 15l2 2-2 2"/></svg>
+        <span class="ico" style="--c1:#9d6bff;--c2:#5525d1"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/><path d="M17 15l2 2-2 2"/></svg></span>
         <h3><span class="en">Yours to arrange</span><span class="ru">Всё под вас</span></h3>
         <p><span class="en">Hold OK on an app to reorder or hide it. English or Russian, °C or °F, recommendations on or off.</span><span class="ru">Зажмите OK на приложении, чтобы переставить или скрыть его. Русский или английский, °C или °F, рекомендации — по желанию.</span></p>
       </div>
@@ -372,12 +380,12 @@ adb install -r FreeMyTV.apk</pre>
 
     <div class="back">
       <div class="card rv">
-        <svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+        <span class="ico" style="--c1:#5e6bff;--c2:#2b35c9"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></span>
         <h3><span class="en">Always a way back</span><span class="ru">Всегда можно вернуть</span></h3>
         <p><span class="en"><em>Original</em> brings back the stock home screen, screensaver and apps. If the new screen ever crashes three times in five minutes, the TV switches back by itself.</span><span class="ru">«Заводской» возвращает родной экран, заставку и приложения. Если новый экран упадёт три раза за пять минут, телевизор вернётся к заводскому сам.</span></p>
       </div>
       <div class="card rv">
-        <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <span class="ico" style="--c1:#8e8e93;--c2:#48484c"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
         <h3><span class="en">Private by design</span><span class="ru">Приватность</span></h3>
         <p><span class="en">No accounts, no analytics. Your settings stay on your computer and your TV.</span><span class="ru">Без аккаунтов и аналитики. Настройки остаются на вашем компьютере и телевизоре.</span></p>
       </div>
