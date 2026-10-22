@@ -143,6 +143,42 @@
   .shot img { width: 100%; height: auto; aspect-ratio: 16/9; object-fit: cover; }
   .shot figcaption { padding: 16px 20px; color: var(--dim); font-size: 14px; }
 
+  /* Languages: one TV and a switch between the English and Russian screens */
+  .langs { margin-top: 56px; display: grid; grid-template-columns: 1.6fr 1fr; gap: 44px; align-items: center; }
+  .tv.inline { max-width: none; margin: 0; }
+  .tv.inline::after { bottom: -22px; width: 120px; height: 22px; }
+  .screen { position: relative; aspect-ratio: 16 / 9; border-radius: 20px; overflow: hidden; background: #000; }
+  .screen img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+                transition: opacity .8s var(--ease), transform 1.4s var(--ease); }
+  .screen img.off { opacity: 0; transform: scale(1.035); }
+  .seg { display: inline-flex; padding: 4px; border-radius: 999px; background: #161618; border: 1px solid var(--line2); box-shadow: var(--lift); }
+  .seg button { font: inherit; font-size: 14px; font-weight: 600; color: var(--dim); background: none; border: 0; padding: 9px 20px;
+                border-radius: 999px; cursor: pointer; transition: background .35s var(--ease), color .35s var(--ease); }
+  .seg button.on { background: #f5f5f7; color: #000; }
+  .facts { list-style: none; margin-top: 22px; display: grid; gap: 10px; }
+  .facts li { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: var(--surface);
+              border: 1px solid var(--line); box-shadow: var(--lift); font-size: 15px; }
+  .facts .k { color: var(--dim); }
+  .facts .v { margin-left: auto; font-weight: 600; text-align: right; transition: opacity .35s; }
+  .facts .v.fade { opacity: 0; }
+
+  /* Weather: text beside the TV with the drawer open, a close-up of the forecast over its corner */
+  .feature { display: grid; grid-template-columns: 1fr 1.3fr; gap: 64px; align-items: center; }
+  .feature .sub { font-size: 18px; }
+  .wx { position: relative; padding-bottom: 12%; }
+  .zoom { position: absolute; left: -14%; bottom: 0; width: 86%; border-radius: 18px; overflow: hidden; border: 1px solid var(--line2);
+          box-shadow: 0 40px 80px -24px rgba(0,0,0,1), 0 0 0 8px rgba(0,0,0,.4); transform: rotate(-1.2deg); }
+  .zoom img { display: block; width: 100%; height: auto; }
+  .fps { display: inline-flex; align-items: center; gap: 12px; margin-top: 30px; padding: 12px 20px; border-radius: 999px; background: #0d0d0f;
+         border: 1px solid var(--line2); box-shadow: var(--lift); font: 600 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #30d158; }
+  .fps i { width: 8px; height: 8px; border-radius: 50%; background: #30d158; box-shadow: 0 0 0 4px rgba(48,209,88,.18); }
+  .fps em { font-style: normal; color: var(--dim); }
+  .fps .line { width: 100px; height: 18px; overflow: hidden; }
+  .fps .line svg { width: 200px; height: 18px; animation: fpsmove 3s linear infinite; }
+  @keyframes fpsmove { to { transform: translateX(-100px); } }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .pills span { font-size: 13px; color: var(--dim); padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line2); background: rgba(255,255,255,.02); }
+
   .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
   .mode { border: 1px solid var(--line); border-radius: var(--r); padding: 26px; background: var(--surface); box-shadow: var(--lift); }
   .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; padding: 7px 14px; border-radius: 999px;
@@ -178,11 +214,14 @@
   /* Reveal on scroll */
   .rv { opacity: 0; transform: translateY(24px); transition: opacity .9s var(--ease), transform .9s var(--ease); }
   .rv.in { opacity: 1; transform: none; }
-  @media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } .spin { animation: none; } html { scroll-behavior: auto; } }
+  @media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } .spin, .fps .line svg { animation: none; } html { scroll-behavior: auto; } }
 
   @media (max-width: 860px) {
     .grid, .modes { grid-template-columns: 1fr 1fr; }
-    .duo, .back { grid-template-columns: 1fr; }
+    .duo, .back, .langs, .feature { grid-template-columns: 1fr; }
+    .feature { gap: 40px; }
+    .wx { padding-bottom: 0; }
+    .zoom { position: relative; left: auto; width: 92%; margin: -6% auto 0; transform: none; }
     .wide { grid-column: span 2; }
   }
   @media (max-width: 600px) {
@@ -319,11 +358,54 @@
       </div>
     </div>
 
-    <div class="duo">
-      <figure class="shot rv"><img src="img/home-en-960.webp" alt="your-tv in English" loading="lazy" width="960" height="540">
-        <figcaption><span class="en">English, with the VPN off</span><span class="ru">На английском, VPN выключен</span></figcaption></figure>
-      <figure class="shot rv"><img src="img/home-ru-960.webp" alt="your-tv на русском" loading="lazy" width="960" height="540">
-        <figcaption><span class="en">Russian, with the VPN for YouTube only</span><span class="ru">На русском, VPN только для YouTube</span></figcaption></figure>
+  </div>
+</section>
+
+<section id="languages">
+  <div class="wrap">
+    <p class="kicker rv"><span class="en">Two languages</span><span class="ru">Два языка</span></p>
+    <h2 class="rv"><span class="en">One home screen.<br><span class="dim">Your language, your apps.</span></span><span class="ru">Один экран.<br><span class="dim">Ваш язык, ваши приложения.</span></span></h2>
+    <div class="langs" id="langs">
+      <div class="tv inline rv"><div class="screen">
+        <img data-l="en" src="img/home-en.webp" alt="your-tv in English" loading="lazy" width="1920" height="1080">
+        <img data-l="ru" class="off" src="img/home-ru.webp" alt="your-tv на русском" loading="lazy" width="1920" height="1080">
+      </div></div>
+      <div class="rv">
+        <div class="seg" role="group" aria-label="Screen language"><button type="button" data-l="en" class="on">English</button><button type="button" data-l="ru">Русский</button></div>
+        <ul class="facts">
+          <li><span class="k"><span class="en">Clock</span><span class="ru">Часы</span></span><span class="v" data-en="12-hour · 4:12" data-ru="24 часа · 12:26">12-hour · 4:12</span></li>
+          <li><span class="k"><span class="en">Weather</span><span class="ru">Погода</span></span><span class="v" data-en="°F · New York" data-ru="°C · Троицк">°F · New York</span></li>
+          <li><span class="k">VPN</span><span class="v" data-en="Off" data-ru="только YouTube">Off</span></li>
+          <li><span class="k"><span class="en">Apps</span><span class="ru">Приложения</span></span><span class="v" data-en="Netflix · Prime Video · Spotify" data-ru="Okko · Кинопоиск · Кион">Netflix · Prime Video · Spotify</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="weather">
+  <div class="wrap feature">
+    <div>
+      <p class="kicker rv"><span class="en">Weather</span><span class="ru">Погода</span></p>
+      <h2 class="rv"><span class="en">The forecast,<br><span class="dim">one press away.</span></span><span class="ru">Прогноз —<br><span class="dim">одним нажатием.</span></span></h2>
+      <p class="sub rv"><span class="en">Press down on the remote for the hour-by-hour forecast, sunrise and sunset, and the next three days. The weather icons are redrawn for a big screen and read clearly from the sofa. The drawer is drawn by hand on a single canvas, built for 60 frames per second on the TV's own modest chip.</span><span class="ru">Нажмите вниз на пульте — появятся прогноз по часам, восход и закат и погода на три дня. Иконки погоды нарисованы заново для большого экрана и хорошо читаются с дивана. Панель рисуется вручную на одном холсте и рассчитана на 60 кадров в секунду на скромном процессоре самого телевизора.</span></p>
+      <div class="pills rv">
+        <span><span class="en">°C or °F</span><span class="ru">°C или °F</span></span>
+        <span><span class="en">12 or 24 hours</span><span class="ru">12 или 24 часа</span></span>
+        <span><span class="en">Inputs and shortcuts in the same drawer</span><span class="ru">Входы и ярлыки — в той же панели</span></span>
+        <span><span class="en">Wallpapers that dim in the evening</span><span class="ru">Обои темнеют к вечеру</span></span>
+      </div>
+      <div class="fps rv" aria-hidden="true"><i></i>60 FPS<span class="line"><svg viewBox="0 0 200 18" preserveAspectRatio="none"><path d="M0 10 Q5 7 10 9 T20 10 T30 8 T40 10 T50 9 T60 11 T70 9 T80 10 T90 8 T100 10 Q105 7 110 9 T120 10 T130 8 T140 10 T150 9 T160 11 T170 9 T180 10 T190 8 T200 10" fill="none" stroke="#30d158" stroke-width="1.6"/></svg></span><em>16.6 ms</em></div>
+    </div>
+    <div class="wx rv">
+      <div class="tv inline"><div class="screen">
+        <img class="en" src="img/drawer-en.webp" alt="The weather drawer in English" loading="lazy" width="1920" height="1080">
+        <img class="ru" src="img/drawer-ru.webp" alt="Панель с погодой на русском" loading="lazy" width="1920" height="1080">
+      </div></div>
+      <div class="zoom">
+        <img class="en" src="img/weather-en.webp" alt="The forecast, close up" loading="lazy" width="1305" height="300">
+        <img class="ru" src="img/weather-ru.webp" alt="Прогноз крупным планом" loading="lazy" width="1305" height="300">
+      </div>
     </div>
   </div>
 </section>
@@ -429,7 +511,28 @@ adb install -r FreeMyTV.apk</pre>
     [].forEach.call(document.querySelectorAll('.lang button'), function (b) { b.classList.toggle('on', b.getAttribute('data-set') === l); });
     [].forEach.call(document.querySelectorAll('.copy'), function (b) { b.textContent = l === 'ru' ? 'Копировать' : 'Copy'; });
   }
+  // Languages section: English and Russian screens take turns until someone presses the switch.
+  var langs = document.getElementById('langs'), scLang = null, scAuto = true;
+  function scShow(l, quick) {
+    if (!langs || l === scLang) return;
+    scLang = l;
+    [].forEach.call(langs.querySelectorAll('.screen img'), function (im) { im.classList.toggle('off', im.getAttribute('data-l') !== l); });
+    [].forEach.call(langs.querySelectorAll('.seg button'), function (b) { b.classList.toggle('on', b.getAttribute('data-l') === l); });
+    [].forEach.call(langs.querySelectorAll('.facts .v'), function (v) {
+      if (quick) { v.textContent = v.getAttribute('data-' + l); return; }
+      v.classList.add('fade');
+      setTimeout(function () { v.textContent = v.getAttribute('data-' + l); v.classList.remove('fade'); }, 300);
+    });
+  }
   setLang(lang);
+  scShow(lang, true);
+  if (langs) {
+    [].forEach.call(langs.querySelectorAll('.seg button'), function (b) {
+      b.addEventListener('click', function () { scAuto = false; scShow(b.getAttribute('data-l')); });
+    });
+    var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!calm) setInterval(function () { if (scAuto && document.visibilityState === 'visible') scShow(scLang === 'en' ? 'ru' : 'en'); }, 5000);
+  }
   [].forEach.call(document.querySelectorAll('.lang button'), function (b) {
     b.addEventListener('click', function () { setLang(b.getAttribute('data-set')); try { localStorage.setItem('lang', lang); } catch (e) {} });
   });
