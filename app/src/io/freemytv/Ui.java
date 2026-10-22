@@ -121,12 +121,17 @@ final class Ui {
 
     /** "21:47", or "9:47 PM" with 12-hour time. */
     static String clock(long now) {
-        return new SimpleDateFormat(Prefs.twelveHour() ? "h:mm a" : "HH:mm", locale()).format(new Date(now));
+        return new SimpleDateFormat(Prefs.twelveHour() ? "h:mm a" : "HH:mm", timeLocale()).format(new Date(now));
+    }
+
+    /** For times: in English with 12-hour time, US style ("PM", not "pm"). */
+    static Locale timeLocale() {
+        return Lang.english() && Prefs.twelveHour() ? Locale.US : locale();
     }
 
     /** "5:21" (sunrise and sunset), or "5:21 AM". */
     static String time(long at) {
-        return once("time", at, () -> new SimpleDateFormat(Prefs.twelveHour() ? "h:mm a" : "H:mm", locale()).format(new Date(at)));
+        return once("time", at, () -> new SimpleDateFormat(Prefs.twelveHour() ? "h:mm a" : "H:mm", timeLocale()).format(new Date(at)));
     }
 
     private static final HashMap<String, String> FORMATTED = new HashMap<>();
