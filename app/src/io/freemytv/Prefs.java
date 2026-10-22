@@ -89,7 +89,7 @@ final class Prefs {
 
     static void setClock(String v) { put("clock", v); }
 
-    /** 12-hour time ("9:41 PM"), as in the US: chosen in Home Settings, or the TV's own setting until then. */
+    /** 12-hour time ("9:41"), as in the US: chosen in Home Settings, or the TV's own setting until then. */
     static boolean twelveHour() {
         String v = clock();
         return v.equals("auto") ? !android.text.format.DateFormat.is24HourFormat(app) : v.equals("12");

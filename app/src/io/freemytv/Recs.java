@@ -45,6 +45,7 @@ final class Recs {
         String kind;            // "movie" or "tv"
         String title, backdrop, meta = "", app, pkg;
         boolean detailed;
+        boolean animated;       // TMDB genre 16, "Animation" (cartoons and anime)
     }
 
     interface Listener { void onRecs(); }
@@ -53,7 +54,7 @@ final class Recs {
     private static final String IMAGES = "https://image.tmdb.org/t/p/original";
     private static final long LIST_EVERY = 6 * 3600_000L;
     /** Bump when what is saved for each title changes (the saved list is discarded and fetched again). */
-    private static final int CACHE_VERSION = 3;
+    private static final int CACHE_VERSION = 4;
     private static final int MANHA = 0, TARDE = 1, NOITE = 2;
     private static final String[] PERIOD_RU = {"НА УТРО", "НА ДЕНЬ", "НА ВЕЧЕР"}, PERIOD_EN = {"THIS MORNING", "THIS AFTERNOON", "TONIGHT"};
     /** Service name on TMDB (part of the name, lowercase) → TV app (HomeApps key, package). */
@@ -424,6 +425,7 @@ final class Recs {
         java.util.Set<String> seen = new java.util.HashSet<>();
         alternate(list, seen, hotMovies, hotShows, 24);
         alternate(list, seen, newMovies, newShows, 24);
+        list = fewerCartoons(list);
         if (list.isEmpty()) throw new IOException("TMDB returned no recommendations");
         picks = list;
         period = p;
@@ -458,7 +460,28 @@ final class Recs {
         p.kind = kind;
         p.title = o.optString(kind.equals("movie") ? "title" : "name");
         p.backdrop = backdrop;
+        JSONArray genres = o.optJSONArray("genre_ids");
+        for (int i = 0; genres != null && i < genres.length(); i++) if (genres.optInt(i) == ANIMATION) p.animated = true;
         list.add(p);
+    }
+
+    private static final int ANIMATION = 16;
+    /** At most one cartoon in every ANIMATION_EVERY picks, and none among the first ones on screen. */
+    private static final int ANIMATION_EVERY = 6;
+
+    /** Cartoons less often: the others keep their order, a cartoon fits in only after ANIMATION_EVERY - 1 others. */
+    static List<Pick> fewerCartoons(List<Pick> in) {
+        List<Pick> out = new ArrayList<>(), cartoons = new ArrayList<>();
+        int since = 0;
+        for (Pick p : in) {
+            if (p.animated) { cartoons.add(p); continue; }
+            out.add(p);
+            if (++since >= ANIMATION_EVERY - 1 && !cartoons.isEmpty()) {
+                out.add(cartoons.remove(0));
+                since = 0;
+            }
+        }
+        return out;
     }
 
     /** Genre, runtime (or seasons) and the service it's on, among the ones the TV has. */
