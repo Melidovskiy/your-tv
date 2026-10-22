@@ -5,6 +5,7 @@
 [![Tests](https://github.com/Melidovskiy/your-tv/actions/workflows/test.yml/badge.svg)](https://github.com/Melidovskiy/your-tv/actions/workflows/test.yml)
 [![Version](https://img.shields.io/badge/version-1.0-blue)](app/AndroidManifest.xml)
 [![Android TV](https://img.shields.io/badge/Android%20TV-9%2B-3DDC84)](#requirements)
+[![Website](https://img.shields.io/badge/website-melidovskiy.github.io%2Fyour--tv-111)](https://melidovskiy.github.io/your-tv/)
 [![Based on Free My TV](https://img.shields.io/badge/based%20on-Free%20My%20TV-8A2BE2)](https://github.com/simbasjungles/free-my-tv)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 

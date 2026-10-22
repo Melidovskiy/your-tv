@@ -1,0 +1,504 @@
+<!doctype html>
+<!--
+  The project's website, served by GitHub Pages from this docs/ folder (Settings → Pages → Deploy from a branch → main, /docs).
+  One page in English and Russian: the language follows the browser until chosen with the EN / RU switch.
+  The comparison's left side is a drawing of an ad-heavy stock home screen, not a real one; the right side is a real
+  your-tv screenshot (img/home-en.webp, img/home-ru.webp, made from assets/home-*.png).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>your-tv — an ad-free home screen for Android TV</title>
+<meta name="description" content="An ad-free home screen for Android TV, with photo wallpapers, the weather and a VPN to your own server. Free and open source.">
+<meta name="theme-color" content="#000000">
+<meta property="og:title" content="your-tv">
+<meta property="og:description" content="An ad-free home screen for Android TV, with photo wallpapers, the weather and a VPN to your own server.">
+<meta property="og:image" content="https://melidovskiy.github.io/your-tv/img/social.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='6' width='26' height='17' rx='4' fill='none' stroke='white' stroke-width='2.4'/%3E%3Cpath d='M11 27h10' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #000; --bg2: #0a0a0b; --card: #111113; --card2: #18181b;
+    --line: rgba(255,255,255,.08); --line2: rgba(255,255,255,.14);
+    --text: #f5f5f7; --dim: #a1a1a6; --dim2: #6e6e73;
+    --r: 22px; --pad: 24px; --max: 1080px;
+    --ease: cubic-bezier(.22,.8,.24,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--bg); color-scheme: dark; scroll-behavior: smooth; }
+  body { font: 17px/1.5 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text);
+         background: var(--bg); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  a { color: inherit; text-decoration: none; }
+  img { display: block; max-width: 100%; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--pad); }
+  [data-lang="ru"] .en, [data-lang="en"] .ru { display: none !important; }
+
+  /* Nav */
+  nav { position: sticky; top: 0; z-index: 20; backdrop-filter: saturate(160%) blur(18px); -webkit-backdrop-filter: saturate(160%) blur(18px);
+        background: rgba(0,0,0,.66); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; gap: 28px; height: 56px; }
+  .logo { font: 800 20px/1 'JetBrains Mono', monospace; letter-spacing: -.02em; }
+  nav .links { display: flex; gap: 24px; margin-left: auto; font-size: 14px; color: var(--dim); }
+  nav .links a:hover { color: var(--text); }
+  .lang { display: flex; border: 1px solid var(--line2); border-radius: 999px; padding: 2px; font-size: 12px; font-weight: 600; }
+  .lang button { font: inherit; color: var(--dim); background: none; border: 0; padding: 4px 10px; border-radius: 999px; cursor: pointer; }
+  .lang button.on { background: var(--text); color: #000; }
+
+  /* Hero */
+  header { padding: 96px 0 40px; text-align: center; position: relative; }
+  header::before { content: ''; position: absolute; inset: -120px 0 auto; height: 620px; pointer-events: none; z-index: -1;
+    background: radial-gradient(50% 60% at 50% 0%, rgba(255,255,255,.10), transparent 70%); }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); border: 1px solid var(--line2);
+             border-radius: 999px; padding: 6px 14px; margin-bottom: 28px; }
+  .eyebrow i { width: 6px; height: 6px; border-radius: 50%; background: #30d158; box-shadow: 0 0 0 4px rgba(48,209,88,.15); }
+  h1 { font-size: clamp(40px, 7.2vw, 80px); line-height: 1.02; letter-spacing: -.045em; font-weight: 700; }
+  h1 .dim { color: var(--dim2); }
+  .lead { font-size: clamp(18px, 2.2vw, 22px); color: var(--dim); max-width: 640px; margin: 22px auto 0; line-height: 1.45; }
+  .cta { display: flex; gap: 12px; justify-content: center; margin-top: 34px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; padding: 13px 22px; border-radius: 999px;
+         transition: transform .2s var(--ease), background .2s; }
+  .btn:active { transform: scale(.97); }
+  .btn.primary { background: var(--text); color: #000; }
+  .btn.primary:hover { background: #fff; }
+  .btn.ghost { border: 1px solid var(--line2); color: var(--text); }
+  .btn.ghost:hover { background: rgba(255,255,255,.06); }
+  .btn svg { width: 18px; height: 18px; }
+
+  /* Comparison */
+  .compare-box { padding: 40px 0 24px; }
+  .tv { position: relative; max-width: 980px; margin: 0 auto; padding: 12px; border-radius: 30px; background: #0b0b0c;
+        border: 1px solid var(--line2); box-shadow: 0 40px 120px rgba(255,255,255,.06), 0 30px 80px rgba(0,0,0,.8); }
+  .tv::after { content: ''; position: absolute; left: 50%; bottom: -26px; width: 150px; height: 26px; transform: translateX(-50%);
+               background: linear-gradient(#141416, #0b0b0c); clip-path: polygon(12% 0, 88% 0, 100% 100%, 0 100%); opacity: .9; }
+  .compare { position: relative; aspect-ratio: 16 / 9; text-align: left; border-radius: 20px; overflow: hidden; cursor: ew-resize; touch-action: pan-y;
+             user-select: none; -webkit-user-select: none; --x: 50%; outline: none; }
+  .compare .after, .compare .before { position: absolute; inset: 0; }
+  .compare .after img { width: 100%; height: 100%; object-fit: cover; }
+  .compare .before { clip-path: inset(0 calc(100% - var(--x)) 0 0); }
+  .divider { position: absolute; top: 0; bottom: 0; left: var(--x); width: 2px; margin-left: -1px; background: rgba(255,255,255,.9);
+             box-shadow: 0 0 20px rgba(0,0,0,.5); pointer-events: none; }
+  .handle { position: absolute; top: 50%; left: var(--x); width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%;
+            background: rgba(255,255,255,.96); box-shadow: 0 6px 24px rgba(0,0,0,.45); display: grid; place-items: center;
+            pointer-events: none; transition: transform .2s var(--ease); }
+  .compare:focus-visible .handle, .compare.drag .handle { transform: scale(1.08); }
+  .handle svg { width: 22px; height: 22px; }
+  /* The labels sit beside the handle and follow it. */
+  .tag { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; font-size: clamp(10px, 1.3vw, 14px); font-weight: 600; padding: .45em 1em; border-radius: 999px;
+         background: rgba(0,0,0,.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: #fff;
+         border: 1px solid rgba(255,255,255,.12); pointer-events: none; transition: opacity .3s; white-space: nowrap; }
+  .tag.l { right: calc(100% - var(--x) + 40px); } .tag.r { left: calc(var(--x) + 40px); background: rgba(255,255,255,.92); color: #000; }
+  .tag small { font-weight: 400; opacity: .7; }
+  .hint { text-align: center; color: var(--dim2); font-size: 13px; margin-top: 44px; }
+
+  /* The drawing of a stock home screen: sizes in em of a font that scales with the box */
+  .stock { position: absolute; inset: 0; background: linear-gradient(180deg, #1c1d21, #121316); font-size: clamp(6px, 1.05vw, 11.5px);
+           padding: 3.2em 3em; color: #d9d9de; overflow: hidden; }
+  .stock .bar { display: flex; gap: 2.2em; align-items: center; font-weight: 600; color: #8e8e93; font-size: 1.15em; white-space: nowrap; }
+  .stock .bar b { color: #fff; background: rgba(255,255,255,.14); padding: .35em .9em; border-radius: 999px; font-weight: 600; }
+  .stock .promo { margin-top: 2.4em; height: 21em; border-radius: 1.4em; padding: 2em 2.4em; position: relative;
+                  background: linear-gradient(110deg, #2b3550 0%, #3c4f64 45%, #4a7a77 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+  .stock .ad { display: inline-block; font-size: .85em; font-weight: 700; color: #3a2f00; background: #e3c75b; padding: .3em .7em; border-radius: .4em; }
+  .stock .ln { height: 1.4em; border-radius: 1em; background: rgba(255,255,255,.5); margin-top: 1em; }
+  .stock .pills { position: absolute; bottom: 2em; left: 2.4em; display: flex; gap: .8em; }
+  .stock .pills span { background: rgba(255,255,255,.85); color: #111; font-weight: 600; padding: .6em 1.4em; border-radius: 999px; }
+  .stock .pills span + span { background: rgba(255,255,255,.18); color: #fff; }
+  .stock h4 { font-size: 1.35em; margin: 2.2em 0 1em; display: flex; align-items: center; gap: .6em; font-weight: 600; }
+  .stock .row { display: flex; gap: 1.2em; }
+  .stock .row div { flex: 0 0 15em; height: 8.6em; border-radius: 1em; position: relative; }
+  .stock .row div .ad { position: absolute; top: .8em; left: .8em; font-size: .75em; }
+  .stock .apps div { flex-basis: 8.4em; height: 5em; }
+  .spin { position: absolute; left: 50%; top: 50%; width: 2.6em; height: 2.6em; margin: -1.3em; border-radius: 50%;
+          border: .25em solid rgba(255,255,255,.25); border-top-color: #fff; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Sections */
+  section { padding: 110px 0 0; }
+  .kicker { font-size: 14px; font-weight: 600; color: var(--dim); letter-spacing: .02em; }
+  h2 { font-size: clamp(32px, 5vw, 52px); line-height: 1.06; letter-spacing: -.035em; font-weight: 700; margin-top: 10px; max-width: 760px; }
+  h2 .dim { color: var(--dim2); }
+  .sub { color: var(--dim); font-size: 19px; max-width: 640px; margin-top: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 28px; transition: border-color .3s, transform .4s var(--ease); }
+  .card:hover { border-color: var(--line2); transform: translateY(-2px); }
+  .card svg { width: 28px; height: 28px; stroke: var(--text); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .card h3 { font-size: 19px; letter-spacing: -.01em; margin-top: 18px; font-weight: 600; }
+  .card p { color: var(--dim); font-size: 15px; margin-top: 8px; line-height: 1.5; }
+  .wide { grid-column: span 2; }
+
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 48px; }
+  .shot { border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); background: var(--card); }
+  .shot img { width: 100%; height: auto; aspect-ratio: 16/9; object-fit: cover; }
+  .shot figcaption { padding: 16px 20px; color: var(--dim); font-size: 14px; }
+
+  .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
+  .mode { border: 1px solid var(--line); border-radius: var(--r); padding: 26px; background: var(--card); }
+  .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; padding: 7px 14px; border-radius: 999px;
+          border: 1px solid var(--line2); background: rgba(255,255,255,.04); }
+  .pill.on { border-color: rgba(48,209,88,.4); background: rgba(48,209,88,.12); color: #d6f5de; }
+  .pill svg { width: 15px; height: 15px; }
+  .mode p { color: var(--dim); font-size: 15px; margin-top: 16px; }
+
+  .steps { counter-reset: s; margin-top: 48px; display: grid; gap: 14px; }
+  .step { display: grid; grid-template-columns: 52px 1fr; gap: 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 24px; }
+  .step::before { counter-increment: s; content: counter(s); width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line2);
+                  display: grid; place-items: center; font-weight: 600; font-size: 15px; color: var(--dim); }
+  .step h3 { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+  .step p { color: var(--dim); font-size: 15px; margin-top: 6px; }
+  pre { position: relative; margin-top: 14px; background: #000; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px;
+        font: 500 14px/1.7 'JetBrains Mono', monospace; color: #e5e5ea; overflow-x: auto; }
+  pre .c { color: var(--dim2); }
+  .copy { position: absolute; top: 10px; right: 10px; font: 600 12px 'Inter', sans-serif; color: var(--dim); background: var(--card2);
+          border: 1px solid var(--line2); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+  .copy:hover { color: var(--text); }
+  code { font-family: 'JetBrains Mono', monospace; font-size: .9em; background: rgba(255,255,255,.07); padding: .1em .4em; border-radius: 6px; }
+
+  .back { margin-top: 48px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+  .note { color: var(--dim2); font-size: 14px; margin-top: 18px; }
+
+  .final { text-align: center; padding: 140px 0 120px; }
+  .final h2 { margin: 0 auto; }
+  footer { border-top: 1px solid var(--line); padding: 36px 0 56px; color: var(--dim2); font-size: 13px; line-height: 1.7; }
+  footer a { color: var(--dim); text-decoration: underline; text-decoration-color: var(--line2); text-underline-offset: 3px; }
+  footer a:hover { color: var(--text); }
+  footer .row { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 18px; }
+
+  /* Reveal on scroll */
+  .rv { opacity: 0; transform: translateY(24px); transition: opacity .9s var(--ease), transform .9s var(--ease); }
+  .rv.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } .spin { animation: none; } html { scroll-behavior: auto; } }
+
+  @media (max-width: 860px) {
+    .grid, .modes { grid-template-columns: 1fr 1fr; }
+    .duo, .back { grid-template-columns: 1fr; }
+    .wide { grid-column: span 2; }
+  }
+  @media (max-width: 600px) {
+    :root { --pad: 16px; }
+    nav .links { display: none; }
+    .lang { margin-left: auto; }
+    header { padding-top: 64px; }
+    .grid, .modes { grid-template-columns: 1fr; }
+    .wide { grid-column: auto; }
+    .tv { padding: 6px; border-radius: 18px; }
+    .compare { border-radius: 13px; }
+    .handle { width: 40px; height: 40px; margin: -20px 0 0 -20px; }
+    .tag.l { right: calc(100% - var(--x) + 28px); } .tag.r { left: calc(var(--x) + 28px); }
+    .step { grid-template-columns: 1fr; gap: 12px; padding: 20px; }
+    section { padding-top: 80px; }
+    .tag small { display: none; }
+  }
+</style>
+</head>
+<body data-lang="en">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="gh" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.4-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></symbol>
+  <symbol id="shield" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 3l7 3v5.5c0 4.4-3 8-7 9.5-4-1.5-7-5.1-7-9.5V6z"/></symbol>
+</svg>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#top">your-tv</a>
+    <div class="links">
+      <a href="#features"><span class="en">Features</span><span class="ru">Возможности</span></a>
+      <a href="#vpn">VPN</a>
+      <a href="#install"><span class="en">Install</span><span class="ru">Установка</span></a>
+      <a href="https://github.com/Melidovskiy/your-tv">GitHub</a>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button data-set="en">EN</button><button data-set="ru">RU</button>
+    </div>
+  </div>
+</nav>
+
+<header id="top">
+  <div class="wrap">
+    <div class="eyebrow rv"><i></i><span class="en">Free and open source · Android TV 9+</span><span class="ru">Бесплатно и с открытым кодом · Android TV 9+</span></div>
+    <h1 class="rv"><span class="en">Your TV.<br><span class="dim">Without the ads.</span></span><span class="ru">Ваш телевизор.<br><span class="dim">Без рекламы.</span></span></h1>
+    <p class="lead rv">
+      <span class="en">A calm home screen for Android TV: your apps, photo wallpapers, the weather and a VPN to your own server. Nothing else.</span>
+      <span class="ru">Спокойный главный экран для Android TV: ваши приложения, фото-обои, погода и VPN через свой сервер. И ничего лишнего.</span>
+    </p>
+    <div class="cta rv">
+      <a class="btn primary" href="https://github.com/Melidovskiy/your-tv"><svg><use href="#gh"/></svg><span class="en">Get it on GitHub</span><span class="ru">Скачать на GitHub</span></a>
+      <a class="btn ghost" href="#install"><span class="en">How to install</span><span class="ru">Как установить</span></a>
+    </div>
+  </div>
+
+  <div class="wrap compare-box rv">
+    <div class="tv">
+      <div class="compare" id="compare" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"
+           aria-label="Compare the stock home screen with your-tv">
+        <div class="after"><img id="shotAfter" src="img/home-en.webp" alt="your-tv home screen" width="1920" height="1080"></div>
+        <div class="before" aria-hidden="true">
+          <div class="stock">
+            <div class="bar"><b class="en">For you</b><b class="ru">Для вас</b>
+              <span class="en">Movies</span><span class="ru">Фильмы</span><span class="en">Shows</span><span class="ru">Сериалы</span>
+              <span class="en">Apps</span><span class="ru">Приложения</span><span class="en">Live</span><span class="ru">ТВ</span>
+              <span class="en">Kids</span><span class="ru">Детям</span><span class="en">Sports</span><span class="ru">Спорт</span></div>
+            <div class="promo">
+              <span class="ad"><span class="en">Sponsored</span><span class="ru">Реклама</span></span>
+              <div class="ln" style="width:42%;margin-top:4.2em;height:1.9em"></div>
+              <div class="ln" style="width:30%;opacity:.6"></div>
+              <div class="ln" style="width:34%;opacity:.6"></div>
+              <div class="pills"><span class="en">Watch now</span><span class="ru">Смотреть</span><span class="en">More info</span><span class="ru">Подробнее</span></div>
+            </div>
+            <h4><span class="en">Top picks for you</span><span class="ru">Подобрали для вас</span> <span class="ad">AD</span></h4>
+            <div class="row">
+              <div style="background:linear-gradient(135deg,#8a6a52,#5c4636)"><span class="ad">AD</span></div>
+              <div style="background:linear-gradient(135deg,#2c4a3c,#1a2b23);box-shadow:inset 0 0 0 .2em rgba(255,255,255,.55)"><span class="spin"></span></div>
+              <div style="background:linear-gradient(135deg,#7a3e48,#4d2730)"></div>
+              <div style="background:linear-gradient(135deg,#5a4f9a,#3b336b)"><span class="ad">AD</span></div>
+              <div style="background:linear-gradient(135deg,#3e5f86,#273c55)"></div>
+            </div>
+            <h4><span class="en">Apps &amp; channels</span><span class="ru">Приложения и каналы</span></h4>
+            <div class="row apps">
+              <div style="background:#4f7a62"></div><div style="background:#8c7b4c"></div><div style="background:#9a5a44"></div>
+              <div style="background:#3c7c8c"></div><div style="background:#4f5a95"></div><div style="background:#6b4f95"></div><div style="background:#4a6f95"></div>
+            </div>
+            <h4><span class="en">Sponsored</span><span class="ru">Реклама</span> <span class="ad">AD</span></h4>
+            <div class="row"><div style="background:#3d6f74"></div><div style="background:#8a5a46"></div><div style="background:#4a5590"></div><div style="background:#3f7a5a"></div></div>
+          </div>
+        </div>
+        <span class="tag l" id="tagL"><span class="en">Stock home screen <small>(illustration)</small></span><span class="ru">Заводской экран <small>(иллюстрация)</small></span></span>
+        <span class="tag r" id="tagR">your-tv</span>
+        <div class="divider"></div>
+        <div class="handle"><svg viewBox="0 0 24 24" fill="#111"><path d="M9.5 7 4.5 12l5 5zM14.5 7l5 5-5 5z"/></svg></div>
+      </div>
+    </div>
+    <p class="hint"><span class="en">Drag to compare</span><span class="ru">Потяните, чтобы сравнить</span></p>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="kicker rv"><span class="en">Features</span><span class="ru">Возможности</span></div>
+    <h2 class="rv"><span class="en">Everything you need.<br><span class="dim">Nothing you don't.</span></span><span class="ru">Всё, что нужно.<br><span class="dim">Ничего лишнего.</span></span></h2>
+    <div class="grid">
+      <div class="card rv">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2.5"/><path d="M8 20h8"/><path d="M7 12l3-3 2 2 3-3 2 2"/></svg>
+        <h3><span class="en">A clean home screen</span><span class="ru">Чистый главный экран</span></h3>
+        <p><span class="en">Trending films and shows from the apps you already have, a dock with your favorite apps, and a drawer with the inputs, shortcuts and the weather. No sponsored rows, no promos.</span><span class="ru">Популярные фильмы и сериалы из приложений, которые у вас уже есть, панель любимых приложений и шторка со входами, ярлыками и погодой. Без рекламных рядов и промо.</span></p>
+      </div>
+      <div class="card rv">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.6"/></svg>
+        <h3><span class="en">Photo wallpapers</span><span class="ru">Фото-обои</span></h3>
+        <p><span class="en">Landscapes from Wikimedia Commons, a new one every five minutes: bright by day, sunsets in the evening, stars at night.</span><span class="ru">Пейзажи из Wikimedia Commons, новые каждые пять минут: светлые днём, закаты вечером, звёзды ночью.</span></p>
+      </div>
+      <div class="card rv">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+        <h3><span class="en">Clock and evening look</span><span class="ru">Часы и вечерний вид</span></h3>
+        <p><span class="en">The time and date at a glance, 12- or 24-hour. After sunset the screen gets a little darker.</span><span class="ru">Время и дата с первого взгляда, 12- или 24-часовой формат. После заката экран становится чуть темнее.</span></p>
+      </div>
+      <div class="card rv">
+        <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.4-3 8-7 9.5-4-1.5-7-5.1-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        <h3><span class="en">Fewer ads everywhere</span><span class="ru">Меньше рекламы везде</span></h3>
+        <p><span class="en">The stock home screen and its promo apps are turned off, never uninstalled. AdGuard DNS blocks ad domains for every app.</span><span class="ru">Заводской экран и рекламные приложения выключаются, но не удаляются. AdGuard DNS блокирует рекламу во всех приложениях.</span></p>
+      </div>
+      <div class="card rv">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10.5 9.5v5l4-2.5z"/></svg>
+        <h3><span class="en">YouTube without ads</span><span class="ru">YouTube без рекламы</span></h3>
+        <p><span class="en">With TizenTube installed, the YouTube tile opens YouTube's own TV interface without ads or sponsor segments.</span><span class="ru">Если установлен TizenTube, плитка YouTube открывает родной интерфейс YouTube без рекламы и спонсорских вставок.</span></p>
+      </div>
+      <div class="card rv">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/><path d="M17 15l2 2-2 2"/></svg>
+        <h3><span class="en">Yours to arrange</span><span class="ru">Всё под вас</span></h3>
+        <p><span class="en">Hold OK on an app to reorder or hide it. English or Russian, °C or °F, recommendations on or off.</span><span class="ru">Зажмите OK на приложении, чтобы переставить или скрыть его. Русский или английский, °C или °F, рекомендации — по желанию.</span></p>
+      </div>
+    </div>
+
+    <div class="duo">
+      <figure class="shot rv"><img src="img/home-en-960.webp" alt="your-tv in English" loading="lazy" width="960" height="540">
+        <figcaption><span class="en">English, with the VPN off</span><span class="ru">На английском, VPN выключен</span></figcaption></figure>
+      <figure class="shot rv"><img src="img/home-ru-960.webp" alt="your-tv на русском" loading="lazy" width="960" height="540">
+        <figcaption><span class="en">Russian, with the VPN for YouTube only</span><span class="ru">На русском, VPN только для YouTube</span></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="vpn">
+  <div class="wrap">
+    <div class="kicker rv">VPN</div>
+    <h2 class="rv"><span class="en">Your own server.<br><span class="dim">One button.</span></span><span class="ru">Свой сервер.<br><span class="dim">Одна кнопка.</span></span></h2>
+    <p class="sub rv"><span class="en">Paste a share link from any panel or provider: <code>vless://</code>, <code>vmess://</code>, <code>trojan://</code> or <code>ss://</code>. Optional: leave it empty and there's no VPN at all.</span><span class="ru">Вставьте ссылку из любой панели или от провайдера: <code>vless://</code>, <code>vmess://</code>, <code>trojan://</code> или <code>ss://</code>. По желанию: без ссылки VPN просто нет.</span></p>
+    <div class="modes">
+      <div class="mode rv"><span class="pill on"><svg><use href="#shield"/></svg>VPN: YouTube</span>
+        <p><span class="en">Only YouTube goes through your server. Everything else stays direct.</span><span class="ru">Через ваш сервер идёт только YouTube, всё остальное — напрямую.</span></p></div>
+      <div class="mode rv"><span class="pill on"><svg><use href="#shield"/></svg><span class="en">VPN: whole TV</span><span class="ru">VPN: весь ТВ</span></span>
+        <p><span class="en">Every app on the TV goes through your server.</span><span class="ru">Через ваш сервер идут все приложения на телевизоре.</span></p></div>
+      <div class="mode rv"><span class="pill"><svg><use href="#shield"/></svg><span class="en">VPN off</span><span class="ru">VPN выкл.</span></span>
+        <p><span class="en">Off, and it stays off after a restart.</span><span class="ru">Выключен и останется выключенным после перезагрузки.</span></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <div class="kicker rv"><span class="en">Install</span><span class="ru">Установка</span></div>
+    <h2 class="rv"><span class="en">Ten minutes,<br><span class="dim">one computer.</span></span><span class="ru">Десять минут<br><span class="dim">и один компьютер.</span></span></h2>
+    <p class="sub rv"><span class="en">You build the app with your own settings (your city, your server) and install it over Wi-Fi. You'll need a JDK 17, the Android SDK command-line tools and <code>adb</code>.</span><span class="ru">Приложение собирается с вашими настройками (город, сервер) и ставится по Wi-Fi. Понадобятся JDK 17, Android SDK command-line tools и <code>adb</code>.</span></p>
+    <div class="steps">
+      <div class="step rv"><div>
+        <h3><span class="en">Turn on USB debugging on the TV</span><span class="ru">Включите отладку по USB на телевизоре</span></h3>
+        <p><span class="en">Settings → Device Preferences → About → press <em>Build</em> 7 times. Then Developer options → USB debugging. Note the TV's IP address.</span><span class="ru">Настройки → Настройки устройства → Об устройстве → нажмите <em>Сборка</em> 7 раз. Затем «Для разработчиков» → «Отладка по USB». Запишите IP-адрес телевизора.</span></p>
+      </div></div>
+      <div class="step rv"><div>
+        <h3><span class="en">Get the code</span><span class="ru">Скачайте код</span></h3>
+        <pre><button class="copy">Copy</button>git clone https://github.com/Melidovskiy/your-tv && cd your-tv
+tools/fetch_libs.sh
+./build.sh   <span class="c"># creates config.properties</span></pre>
+      </div></div>
+      <div class="step rv"><div>
+        <h3><span class="en">Fill in your settings and build</span><span class="ru">Заполните настройки и соберите</span></h3>
+        <p><span class="en">Your city, an optional TMDB key for the picks, an optional proxy link. Then:</span><span class="ru">Ваш город, ключ TMDB для подборок и ссылку на прокси — по желанию. Затем:</span></p>
+        <pre><button class="copy">Copy</button>./test.sh && ./build.sh</pre>
+      </div></div>
+      <div class="step rv"><div>
+        <h3><span class="en">Install over Wi-Fi</span><span class="ru">Установите по Wi-Fi</span></h3>
+        <pre><button class="copy">Copy</button>adb connect &lt;TV IP&gt;:5555
+adb install -r FreeMyTV.apk</pre>
+        <p><span class="en">The TV asks <em>Allow USB debugging?</em>: tick <em>Always allow</em>.</span><span class="ru">Телевизор спросит «Разрешить отладку по USB?» — отметьте «Всегда разрешать».</span></p>
+      </div></div>
+      <div class="step rv"><div>
+        <h3><span class="en">Switch on the TV</span><span class="ru">Переключите на телевизоре</span></h3>
+        <p><span class="en">Open <em>Home Screen</em> → <em>Home Screen</em> → <em>New</em>, and allow debugging once more.</span><span class="ru">Откройте «Главный экран» → «Главный экран» → «Новый» и ещё раз разрешите отладку.</span></p>
+      </div></div>
+    </div>
+    <p class="note rv"><span class="en">Step by step, with every setting explained: </span><span class="ru">Подробно, со всеми настройками: </span><a href="https://github.com/Melidovskiy/your-tv#install" style="text-decoration:underline">README</a></p>
+
+    <div class="back">
+      <div class="card rv">
+        <svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+        <h3><span class="en">Always a way back</span><span class="ru">Всегда можно вернуть</span></h3>
+        <p><span class="en"><em>Original</em> brings back the stock home screen, screensaver and apps. If the new screen ever crashes three times in five minutes, the TV switches back by itself.</span><span class="ru">«Заводской» возвращает родной экран, заставку и приложения. Если новый экран упадёт три раза за пять минут, телевизор вернётся к заводскому сам.</span></p>
+      </div>
+      <div class="card rv">
+        <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <h3><span class="en">Private by design</span><span class="ru">Приватность</span></h3>
+        <p><span class="en">No accounts, no analytics. Your settings stay on your computer and your TV.</span><span class="ru">Без аккаунтов и аналитики. Настройки остаются на вашем компьютере и телевизоре.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="final">
+  <div class="wrap">
+    <h2 class="rv"><span class="en">Make your TV yours.</span><span class="ru">Сделайте телевизор своим.</span></h2>
+    <div class="cta rv">
+      <a class="btn primary" href="https://github.com/Melidovskiy/your-tv"><svg><use href="#gh"/></svg><span class="en">Get it on GitHub</span><span class="ru">Скачать на GitHub</span></a>
+      <a class="btn ghost" href="https://github.com/Melidovskiy/your-tv/releases/latest"><span class="en">Latest release</span><span class="ru">Последний выпуск</span></a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="row">
+      <span class="logo" style="color:var(--text)">your-tv</span>
+      <span><a href="https://github.com/Melidovskiy/your-tv">GitHub</a> · <a href="https://github.com/Melidovskiy/your-tv/blob/main/LICENSE">MIT</a> · <a href="https://github.com/Melidovskiy/your-tv/blob/main/NOTICE.md">NOTICE</a></span>
+    </div>
+    <p><span class="en">Built on <a href="https://github.com/simbasjungles/free-my-tv">Free My TV</a> (MIT). VPN by <a href="https://github.com/XTLS/Xray-core">Xray-core</a>. Weather by <a href="https://open-meteo.com/">Open-Meteo</a>. This product uses the TMDB API but is not endorsed or certified by <a href="https://www.themoviedb.org/">TMDB</a>. Wallpapers in the screenshots: <a href="https://commons.wikimedia.org/wiki/File:Bergtocht_van_Gimillan_(1805m.)_naar_Colle_Tsa_S%C3%A8tse_in_Cogne_Valley_(Itali%C3%AB)._Waterval_boven_Gimillan_gedeeltelijk_in_de_mist_03.jpg">Dominicus Johannes Bergsma</a> and <a href="https://commons.wikimedia.org/wiki/File:Colorful_sky_with_orange_and_pink_clouds_reflecting_in_the_water_of_a_paddy_field_at_dusk_in_Don_Det_Laos.jpg">Basile Morin</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. App logos belong to their owners. The stock home screen above is an illustration.</span>
+    <span class="ru">Основан на <a href="https://github.com/simbasjungles/free-my-tv">Free My TV</a> (MIT). VPN — <a href="https://github.com/XTLS/Xray-core">Xray-core</a>. Погода — <a href="https://open-meteo.com/">Open-Meteo</a>. Продукт использует TMDB API, но не одобрен и не сертифицирован <a href="https://www.themoviedb.org/">TMDB</a>. Обои на снимках: <a href="https://commons.wikimedia.org/wiki/File:Bergtocht_van_Gimillan_(1805m.)_naar_Colle_Tsa_S%C3%A8tse_in_Cogne_Valley_(Itali%C3%AB)._Waterval_boven_Gimillan_gedeeltelijk_in_de_mist_03.jpg">Dominicus Johannes Bergsma</a> и <a href="https://commons.wikimedia.org/wiki/File:Colorful_sky_with_orange_and_pink_clouds_reflecting_in_the_water_of_a_paddy_field_at_dusk_in_Don_Det_Laos.jpg">Basile Morin</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. Логотипы приложений принадлежат их владельцам. Заводской экран выше — иллюстрация.</span></p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Language: the browser's until chosen; remembered on this device.
+  var saved = null;
+  try { saved = localStorage.getItem('lang'); } catch (e) {}
+  var lang = saved || ((navigator.language || '').toLowerCase().indexOf('ru') === 0 ? 'ru' : 'en');
+  function setLang(l) {
+    lang = l;
+    document.body.setAttribute('data-lang', l);
+    document.documentElement.lang = l;
+    document.title = l === 'ru' ? 'your-tv — главный экран для Android TV без рекламы' : 'your-tv — an ad-free home screen for Android TV';
+    document.getElementById('shotAfter').src = 'img/home-' + l + '.webp';
+    [].forEach.call(document.querySelectorAll('.lang button'), function (b) { b.classList.toggle('on', b.getAttribute('data-set') === l); });
+    [].forEach.call(document.querySelectorAll('.copy'), function (b) { b.textContent = l === 'ru' ? 'Копировать' : 'Copy'; });
+  }
+  setLang(lang);
+  [].forEach.call(document.querySelectorAll('.lang button'), function (b) {
+    b.addEventListener('click', function () { setLang(b.getAttribute('data-set')); try { localStorage.setItem('lang', lang); } catch (e) {} });
+  });
+
+  // Before/after slider: drag, click, or arrow keys; a short sweep when it first comes into view.
+  var box = document.getElementById('compare'), tagL = document.getElementById('tagL'), tagR = document.getElementById('tagR');
+  var pos = 50, dragging = false, touched = false;
+  function set(p) {
+    pos = Math.max(0, Math.min(100, p));
+    box.style.setProperty('--x', pos + '%');
+    box.setAttribute('aria-valuenow', Math.round(pos));
+    tagL.style.opacity = pos < 30 ? 0 : 1;
+    tagR.style.opacity = pos > 74 ? 0 : 1;
+  }
+  function fromEvent(e) {
+    var r = box.getBoundingClientRect();
+    var x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    set(x / r.width * 100);
+  }
+  box.addEventListener('pointerdown', function (e) {
+    touched = true; dragging = true; box.classList.add('drag');
+    if (box.setPointerCapture) box.setPointerCapture(e.pointerId);
+    fromEvent(e);
+  });
+  box.addEventListener('pointermove', function (e) { if (dragging) fromEvent(e); });
+  function stop() { dragging = false; box.classList.remove('drag'); }
+  box.addEventListener('pointerup', stop);
+  box.addEventListener('pointercancel', stop);
+  box.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      touched = true; e.preventDefault();
+      set(pos + (e.key === 'ArrowLeft' ? -5 : 5) * (e.shiftKey ? 3 : 1));
+    }
+  });
+  set(50);
+  var still = /[?&]x=(\d+)/.exec(location.search);   // ?x=30: a still frame (for screenshots)
+  if (still) { touched = true; set(+still[1]); }
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sweep() {
+    if (reduce || touched) return;
+    var t0 = null, from = 50;
+    // 50 → 72 → 28 → 50, eased
+    var keys = [[0, 50], [0.32, 74], [0.72, 26], [1, 50]], dur = 2600;
+    function frame(t) {
+      if (touched) return;
+      if (t0 === null) t0 = t;
+      var k = Math.min(1, (t - t0) / dur), i = 1;
+      while (i < keys.length - 1 && k > keys[i][0]) i++;
+      var a = keys[i - 1], b = keys[i], u = (k - a[0]) / (b[0] - a[0]);
+      u = u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+      set(a[1] + (b[1] - a[1]) * u);
+      if (k < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // Reveal on scroll
+  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) {
+    es.forEach(function (en) {
+      if (!en.isIntersecting) return;
+      en.target.classList.add('in');
+      if (en.target.classList.contains('compare-box')) setTimeout(sweep, 500);
+      io.unobserve(en.target);
+    });
+  }, { threshold: .15 }) : null;
+  [].forEach.call(document.querySelectorAll('.rv'), function (el) { io ? io.observe(el) : el.classList.add('in'); });
+  if (!io) setTimeout(sweep, 800);
+
+  // Copy buttons
+  [].forEach.call(document.querySelectorAll('.copy'), function (b) {
+    b.addEventListener('click', function () {
+      var text = b.parentNode.textContent.replace(b.textContent, '').replace(/\s+#.*$/gm, '').trim();
+      var done = function () { b.textContent = lang === 'ru' ? 'Скопировано' : 'Copied'; setTimeout(function () { b.textContent = lang === 'ru' ? 'Копировать' : 'Copy'; }, 1500); };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {}); else done();
+    });
+  });
+})();
+</script>
+</body>
+</html>
