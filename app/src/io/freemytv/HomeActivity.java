@@ -39,8 +39,18 @@ public class HomeActivity extends Activity {
         getWindow().setBackgroundDrawable(null);
     }
 
+    /**
+     * A marker file while the home screen is in front, read by the main process after an update: an update stops this
+     * app, and the TV then shows the last other app (YouTube, say) instead of the home screen, so HomeReceiver brings
+     * it back.
+     */
+    static java.io.File frontMarker(android.content.Context c) {
+        return new java.io.File(c.getFilesDir(), "home_in_front");
+    }
+
     @Override protected void onResume() {
         super.onResume();
+        try { frontMarker(this).createNewFile(); } catch (java.io.IOException ignored) {}
         if (prefsVersion != Prefs.version) {
             prefsVersion = Prefs.version;
             HomeData.get(this).settingsChanged();
@@ -51,6 +61,7 @@ public class HomeActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        frontMarker(this).delete();
         if (home != null) home.pause();
         super.onPause();
     }
