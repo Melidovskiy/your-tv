@@ -217,6 +217,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private float k = 1;
     private String clockText = "", dateText = "";
     private long clockMinute = -1;
+    private int clockPrefs = -1;   // Prefs.version the clock was formatted with (12/24 hours, language)
     private boolean okDown, backDown;
 
     private Paint labelPaint, metaPaint, clockPaint, buttonPaint, capsuleText, tipPaint;
@@ -775,8 +776,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private boolean updateClock() {
         long now = System.currentTimeMillis();
         long minute = now / 60_000;
-        if (minute == clockMinute || clockPaint == null) return false;
+        if ((minute == clockMinute && Prefs.version == clockPrefs) || clockPaint == null) return false;
         clockMinute = minute;
+        clockPrefs = Prefs.version;
         clockText = Ui.clock(now);
         String d = Ui.date(now);   // "вторник, 21 октября" / "Tuesday, 21 October"
         dateText = d.isEmpty() ? d : d.substring(0, 1).toUpperCase(Ui.locale()) + d.substring(1);

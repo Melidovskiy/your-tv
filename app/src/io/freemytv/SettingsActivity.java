@@ -607,9 +607,9 @@ public class SettingsActivity extends Activity {
 
         // MARK: - Home Settings and Remote Buttons
 
-        private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
+        private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"}, CLOCKS = {"auto", "24", "12"};
 
-        /** Home Settings: temperature, theme, weather, recommendations, ad blocking, language. */
+        /** Home Settings: temperature, theme, weather, recommendations, ad blocking, language, clock. */
         private String[] settingLabels() {
             List<String> l = new ArrayList<>();
             l.add(Lang.tr("Температура", "Temperature"));
@@ -618,6 +618,7 @@ public class SettingsActivity extends Activity {
             l.add(Lang.tr("Рекомендации", "Recommendations"));
             l.add(Lang.tr("Блокировка рекламы", "Ad blocking"));
             l.add("Язык · Language");   // in both, so it can be found in either
+            l.add(Lang.tr("Часы", "Clock"));
             return l.toArray(new String[0]);
         }
 
@@ -632,6 +633,8 @@ public class SettingsActivity extends Activity {
             v[3] = onOff(Prefs.picks());
             v[4] = onOff(HomeMode.adBlock(getContext()));
             v[5] = "en".equals(Prefs.language()) ? "English" : "Русский";
+            String hours = Prefs.twelveHour() ? Lang.tr("12 часов", "12-hour") : Lang.tr("24 часа", "24-hour");
+            v[6] = Prefs.clock().equals("auto") ? Lang.tr("Авто", "Auto") + " (" + hours + ")" : hours;
             return v;
         }
 
@@ -699,6 +702,11 @@ public class SettingsActivity extends Activity {
                 case 3: Prefs.setPicks(!Prefs.picks()); break;
                 case 4: HomeMode.requestAdBlock(getContext(), !HomeMode.adBlock(getContext())); break;
                 case 5: Prefs.setLanguage("en".equals(Prefs.language()) ? "ru" : "en"); break;
+                case 6: {
+                    int at = java.util.Arrays.asList(CLOCKS).indexOf(Prefs.clock());
+                    Prefs.setClock(CLOCKS[(at + dir + CLOCKS.length) % CLOCKS.length]);
+                    break;
+                }
             }
             HomeData.get(getContext()).settingsChanged();
         }

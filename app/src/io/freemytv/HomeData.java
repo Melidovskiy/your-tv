@@ -251,7 +251,7 @@ final class HomeData {
     }
 
     static String hour(long at) {
-        return Ui.once("hour", at, () -> new SimpleDateFormat("HH:mm", Ui.locale()).format(new java.util.Date(at)));
+        return Ui.once("hour", at, () -> new SimpleDateFormat(Prefs.twelveHour() ? "h a" : "HH:mm", Ui.locale()).format(new java.util.Date(at)));
     }
 
     /** How long ago the data was fetched, if it's stale (no internet): "12 мин назад". */

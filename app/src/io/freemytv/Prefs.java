@@ -81,6 +81,20 @@ final class Prefs {
 
     static void setTheme(String v) { put("theme", v); }
 
+    /** "auto" (the TV's own 12/24-hour setting), "24" or "12". */
+    static String clock() {
+        String v = sp().getString("clock", "auto");
+        return v.equals("24") || v.equals("12") ? v : "auto";
+    }
+
+    static void setClock(String v) { put("clock", v); }
+
+    /** 12-hour time ("9:41 PM"), as in the US: chosen in Home Settings, or the TV's own setting until then. */
+    static boolean twelveHour() {
+        String v = clock();
+        return v.equals("auto") ? !android.text.format.DateFormat.is24HourFormat(app) : v.equals("12");
+    }
+
     // MARK: - City (from config.properties)
 
     static String city() { return Config.CITY.trim(); }

@@ -119,14 +119,14 @@ final class Ui {
         return Lang.locale();
     }
 
-    /** "21:47". */
+    /** "21:47", or "9:47 PM" with 12-hour time. */
     static String clock(long now) {
-        return new SimpleDateFormat("HH:mm", locale()).format(new Date(now));
+        return new SimpleDateFormat(Prefs.twelveHour() ? "h:mm a" : "HH:mm", locale()).format(new Date(now));
     }
 
-    /** "5:21" (sunrise and sunset). */
+    /** "5:21" (sunrise and sunset), or "5:21 AM". */
     static String time(long at) {
-        return once("time", at, () -> new SimpleDateFormat("H:mm", locale()).format(new Date(at)));
+        return once("time", at, () -> new SimpleDateFormat(Prefs.twelveHour() ? "h:mm a" : "H:mm", locale()).format(new Date(at)));
     }
 
     private static final HashMap<String, String> FORMATTED = new HashMap<>();
@@ -136,7 +136,7 @@ final class Ui {
      * and SimpleDateFormat and String.format there cost ~10 ms a frame on a Mi Box 3.
      */
     static String once(String kind, double value, Supplier<String> format) {
-        String key = kind + '|' + Lang.code() + '|' + value;
+        String key = kind + '|' + Lang.code() + '|' + Prefs.twelveHour() + '|' + value;
         synchronized (FORMATTED) {
             String s = FORMATTED.get(key);
             if (s == null) {
@@ -148,9 +148,10 @@ final class Ui {
         }
     }
 
-    /** "вторник, 20 октября" / "Tuesday, 20 October". */
+    /** "вторник, 20 октября" / "Tuesday, 20 October", or "Tuesday, October 20" in English with 12-hour time (as in the US). */
     static String date(long now) {
-        return new SimpleDateFormat("EEEE, d MMMM", locale()).format(new Date(now));
+        String f = Lang.english() && Prefs.twelveHour() ? "EEEE, MMMM d" : "EEEE, d MMMM";
+        return new SimpleDateFormat(f, locale()).format(new Date(now));
     }
 
     /** Spinning arc (work in progress). */
