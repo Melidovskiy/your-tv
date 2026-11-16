@@ -1,0 +1,17 @@
+# Your settings and signing key stay on your machine
+config.properties
+*.keystore
+*.idsig
+
+# Build output
+out/
+*.apk
+__pycache__/
+
+# Downloaded by tools/fetch_libs.sh
+libs/
+tests/lib/
+
+# RAM measurements from the TV
+baseline/
+
